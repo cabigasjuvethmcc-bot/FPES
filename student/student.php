@@ -194,15 +194,18 @@ unset($_SESSION['quick_eval']);
 
                         <div class="evaluation-criteria">
                             <h3 class="section-title">Evaluation Criteria</h3>
-                            <p><strong>Teaching Efficiency Rating Scale</strong></p>
-                            <p>Rate each statement on a scale of 5 to 1, where 5 is the highest and 1 is the lowest.</p>
-                            <p>
-                                5 &ndash; Outstanding&nbsp;&nbsp;|
-                                4 &ndash; Very Satisfactory&nbsp;&nbsp;|
-                                3 &ndash; Satisfactory&nbsp;&nbsp;|
-                                2 &ndash; Fair&nbsp;&nbsp;|
-                                1 &ndash; Poor
-                            </p>
+                            <p><strong>Direction:</strong> Please evaluate the faculty member involved by choosing the number that corresponds to the given parameter/dimension on the scale of 5, where 5 is the highest score and 1 is the lowest score.</p>
+                            <p><strong>Scale &mdash; Descriptive Rating with its Corresponding Qualitative Description</strong></p>
+                            <p><strong>5 &mdash; Outstanding</strong><br>
+                                Outstanding exhibits the behavior described <em>at all times</em> when the occasion occurs. The faculty is an exceptional role model.</p>
+                            <p><strong>4 &mdash; Very Satisfactory</strong><br>
+                                Very satisfactory exhibits the behavior described <em>most of the time</em> when the occasion occurs. The performance meets and often exceeds the job requirements.</p>
+                            <p><strong>3 &mdash; Satisfactory</strong><br>
+                                Satisfactory exhibits the behavior described <em>sometimes</em> when the occasion occurs. The performance meets job requirements.</p>
+                            <p><strong>2 &mdash; Fair</strong><br>
+                                Fair exhibits the behavior described <em>rarely</em> when the occasion occurs. The performance only minimally meets job requirements.</p>
+                            <p><strong>1 &mdash; Poor</strong><br>
+                                Poor behavior described has not been exhibited when the occasion occurs. The faculty fails to meet job requirements.</p>
                             
                             <?php foreach ($grouped_criteria as $category => $category_criteria): ?>
                                 <div class="criteria-category">
