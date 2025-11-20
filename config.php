@@ -268,8 +268,9 @@ if (!function_exists('ensureNewEvaluationCriteria')) {
             // Count rows and detect presence of legacy categories
             $total = (int)$pdo->query('SELECT COUNT(*) AS c FROM evaluation_criteria')->fetch()['c'];
             $legacy = (int)$pdo->query("SELECT COUNT(*) AS c FROM evaluation_criteria WHERE category IN ('Teaching Effectiveness','Student Engagement','Assessment','Professional Conduct','Course Content')")->fetch()['c'];
-            if ($total > 0 && $legacy === 0) {
-                // Already migrated
+            // Only skip reseeding if table already matches the new template size
+            // and contains no legacy categories. Otherwise, auto-fix.
+            if ($total === 20 && $legacy === 0) {
                 return;
             }
 
