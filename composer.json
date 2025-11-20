@@ -1,0 +1,11 @@
+{
+    "name": "jubii/fpes",
+    "autoload": {
+        "psr-4": {
+            "Jubii\\Fpes\\": "src/"
+        }
+    },
+    "require": {
+        "endroid/qr-code": "*"
+    }
+}

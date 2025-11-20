@@ -1,0 +1,229 @@
+/* Your original CSS plus sidebar */
+:root {
+  /* School green theme */
+  --primary-color: #10b981; /* emerald */
+  --primary-dark: #059669;
+  --secondary-color: #2ecc71;
+  --secondary-dark: #27ae60;
+  --danger-color: #e74c3c;
+  --danger-dark: #c0392b;
+  --warning-color: #f39c12;
+  --warning-dark: #e67e22;
+  --light-color: #ecf0f1;
+  --dark-color: #2c3e50;
+  --gray-color: #95a5a6;
+  --light-gray: #bdc3c7;
+  --bg-color: #f8fafc;
+  --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  --card-shadow-hover: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #0a2a1c; /* fallback for older browsers */
+  color: #333;
+  line-height: 1.6;
+}
+ .container { max-width: 1200px; margin: 0 auto; padding: 20px; display: block; }
+h1, h2 { color: var(--dark-color); margin-bottom: 1rem; font-weight: 600; }
+/* Search Container Styles */
+.search-container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+}
+
+.search-container input[type="text"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    background: #f8f9fa;
+}
+
+.search-container input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.search-container input[type="text"]::placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+#login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100svh; /* mobile safe */
+  text-align: center;
+  /* Blue–Red–Yellow gradient background */
+  background:
+    radial-gradient(1200px 600px at 15% 15%, rgba(59,130,246,0.35) 0%, rgba(59,130,246,0.10) 40%, transparent 70%),
+    radial-gradient(1000px 500px at 85% 85%, rgba(239,68,68,0.35) 0%, rgba(239,68,68,0.10) 40%, transparent 70%),
+    radial-gradient(900px 450px at 50% 100%, rgba(234,179,8,0.35) 0%, rgba(234,179,8,0.10) 40%, transparent 75%),
+    linear-gradient(135deg, #020617 0%, #0b1120 45%, #1e293b 100%);
+  padding: 24px;
+}
+.app-title { font-size: 1.25rem; color:#475569; opacity: .9; }
+.app-title { color:#e2e8f0; opacity: .85; }
+.login-form { background: #ffffff; padding: 2.25rem; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.22); width: 100%; max-width: 440px; margin-top: 1rem; transition: var(--transition); }
+.login-form:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+.login-logo-wrap { display:flex; justify-content:center; align-items:center; margin-bottom: .75rem; }
+.login-logo { width: 96px; max-width: 28vw; height:auto; object-fit: contain; }
+.login-title { margin: .25rem 0 .5rem; font-weight: 700; }
+.divider { border: 0; border-top: 1px solid #e1e5e9; margin: .5rem 0 1rem; }
+.login-form .form-group { margin-bottom: 1rem; text-align:left; }
+.login-form label { font-size: .95rem; color:#1f2937; margin-bottom: .4rem; display:block; }
+.login-form input[type="text"],
+.login-form input[type="password"],
+.login-form select { width: 100%; padding: .75rem .9rem; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 1rem; background:#fff; transition: border-color .2s ease, box-shadow .2s ease; }
+.login-form input:focus,
+.login-form select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(52,152,219,.12); }
+.btn-primary { background-color: var(--primary-color); color:#fff; border:none; padding: .85rem 1rem; border-radius: 10px; cursor:pointer; transition: var(--transition); font-weight: 600; }
+.btn-primary:hover { background-color: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16,185,129,.22); }
+.btn-full { width: 100%; }
+.btn-outline { display:inline-block; color: var(--primary-dark); background: transparent; border: 2px solid var(--primary-color); padding: .55rem .9rem; border-radius: 10px; font-weight: 600; transition: var(--transition); text-decoration: none; }
+.btn-outline:hover { background: rgba(16,185,129,.08); box-shadow: 0 4px 12px rgba(102, 109, 3, 0.25); transform: translateY(-1px); }
+.btn-outline:focus { outline: none; box-shadow: 0 0 0 3px rgba(102, 109, 3, 0.25); }
+.btn-small { padding: .45rem .75rem; border-radius: 9px; font-size: .92rem; }
+.error-message { color: var(--danger-color); margin-bottom: 1rem; padding: 0.75rem; background-color: rgba(231, 76, 60, 0.08); border-radius: 10px; display: none; font-size: 0.9rem; }
+
+/* Dashboard Sidebar */
+.dashboard { display: flex; min-height: 100vh; }
+.sidebar { width: 240px; background-color: var(--dark-color); color: white; display: flex; flex-direction: column; padding: 1.5rem 1rem; box-shadow: var(--card-shadow); transition: var(--transition); z-index: 1000; }
+.sidebar h2 { margin-bottom: 2rem; font-size: 1.3rem; color: var(--light-color); }
+.sidebar a { color: var(--light-gray); text-decoration: none; margin: 0.75rem 0; display: block; padding: 0.6rem 0.8rem; border-radius: 8px; transition: var(--transition); }
+.sidebar a:hover { background-color: var(--primary-color); color: white; }
+.sidebar a.active { background-color: var(--primary-color); color: #fff; box-shadow: 0 0 0 2px rgba(16,185,129,.25) inset; }
+.main-content { flex: 1; padding: 2rem; background: var(--bg-color); transition: var(--transition); }
+.logout-btn { 
+  margin-top: auto; 
+  background-color: var(--danger-color); 
+  padding: 0.75rem 1rem; 
+  border: none; 
+  border-radius: 8px; 
+  color: white; 
+  cursor: pointer; 
+  transition: var(--transition); 
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+}
+.logout-btn:hover { background-color: var(--danger-dark); }
+/* Toggle */
+.sidebar-toggle { display: none; font-size: 1.3rem; cursor: pointer; background: none; border: none; color: var(--dark-color); }
+
+/* Mobile: make sidebar off-canvas with a toggle. Desktop remains visible. */
+@media (max-width: 768px) {
+  .dashboard { flex-direction: column; }
+  .sidebar { position: fixed; left: -250px; top: 0; height: 100%; width: 240px; }
+  .sidebar.active { left: 0; }
+  .main-content { padding: 3.25rem 1rem 1.75rem; }
+  .sidebar-toggle {
+    display: block;
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 1100; /* above sidebar (1000) */
+    background: #ffffff;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .sidebar-toggle.open {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Login form tweaks on small screens */
+@media (max-width: 768px) {
+  .login-form {
+    padding: 1.5rem;
+    border-radius: 14px;
+  }
+  .login-form .form-group {
+    margin-bottom: 1.25rem;
+  }
+  .login-form input[type="text"],
+  .login-form input[type="password"] {
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    background: #f8fafc;
+  }
+  .login-form .divider {
+    border: 0;
+    border-top: 1px solid #e1e5e9;
+    margin: 1.25rem 0;
+  }
+  .login-form .btn-primary {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+}
+
+/* Responsive tables in dashboards and management pages */
+@media (max-width: 768px) {
+  .evaluations-table,
+  .performance-table,
+  .users-table,
+  .table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Extra-small phones: tighten spacing and font sizes */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+  }
+  .main-content {
+    padding: 1rem 0.75rem 1.5rem;
+  }
+  .sidebar {
+    width: 220px;
+  }
+  .sidebar-toggle {
+    margin: 0.5rem 0.75rem;
+  }
+  .search-container {
+    padding: 0.75rem;
+  }
+  .users-table th,
+  .users-table td,
+  .performance-table th,
+  .performance-table td,
+  .evaluations-table th,
+  .evaluations-table td,
+  .table th,
+  .table td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.8rem;
+  }
+}

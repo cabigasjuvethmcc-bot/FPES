@@ -1,0 +1,229 @@
+<?php
+require_once 'config.php';
+require_once 'catalog.php';
+
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        role ENUM('student') NOT NULL DEFAULT 'student',
+        full_name VARCHAR(100) NOT NULL,
+        student_id VARCHAR(20) NULL,
+        gender ENUM('Male','Female') NULL,
+        year_level VARCHAR(20) NOT NULL,
+        program VARCHAR(100) NOT NULL,
+        department VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        phone VARCHAR(30) NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+} catch (PDOException $e) {
+}
+
+$errors = [];
+$submitted = false;
+
+// Initialize form values for repopulation
+$full_name = '';
+$student_id = '';
+$gender = '';
+$year_level = '';
+$program = '';
+$department = '';
+$email = '';
+$phone = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $full_name = sanitizeInput($_POST['full_name'] ?? '');
+    $student_id = sanitizeInput($_POST['student_id'] ?? '');
+    $gender = sanitizeInput($_POST['gender'] ?? '');
+    $year_level = sanitizeInput($_POST['year_level'] ?? '');
+    $program = sanitizeInput($_POST['program'] ?? '');
+    $department = sanitizeInput($_POST['department'] ?? '');
+    $email = sanitizeInput($_POST['email'] ?? '');
+    $phone = sanitizeInput($_POST['phone'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+
+    if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
+        $errors[] = 'Please fill in all required fields.';
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Please enter a valid email address.';
+    }
+    if ($password !== $confirm_password) {
+        $errors[] = 'Password and Confirm Password do not match.';
+    }
+    if (strlen($password) < 8) {
+        $errors[] = 'Password must be at least 8 characters.';
+    }
+
+    if (empty($errors)) {
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        try {
+            $stmt = $pdo->prepare("INSERT INTO pending_registrations
+                (role, full_name, student_id, gender, year_level, program, department, email, phone, password_hash)
+                VALUES ('student', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$full_name, $student_id, $gender, $year_level, $program, $department, $email, $phone, $password_hash]);
+            $submitted = true;
+        } catch (PDOException $e) {
+            // Surface the actual reason so issues in production are visible
+            $errors[] = 'Unable to submit registration: ' . $e->getMessage();
+        }
+    }
+}
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Signup</title>
+    <link rel="icon" href="img/loginlogo.png?v=2" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container" id="login-container">
+        <h1 class="app-title">Faculty Performance Evaluation System</h1>
+        <?php
+        // Lightweight debug: show how many pending registrations currently exist
+        try {
+            $dbgStmt = $pdo->query("SELECT COUNT(*) AS c FROM pending_registrations");
+            $dbgRow = $dbgStmt->fetch();
+            $dbgCount = (int)($dbgRow['c'] ?? 0);
+        } catch (PDOException $e) {
+            $dbgCount = -1;
+        }
+        $dbgMethod = $_SERVER['REQUEST_METHOD'] ?? 'unknown';
+        $dbgIsPost = ($dbgMethod === 'POST') ? 'yes' : 'no';
+        $dbgErrors = is_array($errors) ? count($errors) : -1;
+        $dbgErrorText = '';
+        if (is_array($errors) && !empty($errors)) {
+            $dbgErrorText = implode(' | ', array_map('strval', $errors));
+        }
+        $dbgSubmitted = $submitted ? 'yes' : 'no';
+        ?>
+        <div style="margin:0 auto 1rem auto; max-width:520px; font-size:0.8rem; color:#555; text-align:center; line-height:1.4;">
+            Debug: rows = <?php echo $dbgCount; ?> |
+            method = <?php echo htmlspecialchars($dbgMethod); ?> |
+            isPostBlock = <?php echo $dbgIsPost; ?> |
+            errors = <?php echo $dbgErrors; ?> |
+            submitted = <?php echo $dbgSubmitted; ?>
+            <?php if ($dbgErrorText !== ''): ?>
+            | errText = <?php echo htmlspecialchars($dbgErrorText); ?>
+            <?php endif; ?>
+        </div>
+        <div class="login-form" role="region" aria-labelledby="signup-title">
+            <h2 id="signup-title" class="login-title">Student Signup</h2>
+            <hr class="divider" aria-hidden="true" />
+            <?php if ($submitted && empty($errors)): ?>
+                <div class="success-message">Your registration has been submitted and is awaiting admin approval.</div>
+            <?php else: ?>
+                <?php
+                // If a POST happened but no success and no errors, show a generic message
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors) && !$submitted) {
+                    $errors[] = 'Registration could not be completed. Please check your inputs or contact the administrator.';
+                }
+                ?>
+                <?php if (!empty($errors)): ?>
+                    <div class="error-message">
+                        <?php foreach ($errors as $err): ?>
+                            <div><?php echo htmlspecialchars($err); ?></div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+                <form method="post">
+                    <div class="form-group">
+                        <label for="full_name">Full Name</label>
+                        <input type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($full_name); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="student_id">Student ID (optional)</label>
+                        <input type="text" id="student_id" name="student_id" value="<?php echo htmlspecialchars($student_id); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender">
+                            <option value="">-- Select Gender (optional) --</option>
+                            <option value="Male" <?php echo $gender === 'Male' ? 'selected' : ''; ?>>Male</option>
+                            <option value="Female" <?php echo $gender === 'Female' ? 'selected' : ''; ?>>Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="year_level">Year Level</label>
+                        <input type="text" id="year_level" name="year_level" value="<?php echo htmlspecialchars($year_level); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="program">Program</label>
+                        <select id="program" name="program" required>
+                            <option value="">-- Select Program --</option>
+                            <?php
+                            $deptKey = normalize_department_key($department);
+                            $list = $PROGRAMS_BY_DEPT[$deptKey] ?? [];
+                            foreach ($list as $p): ?>
+                                <option value="<?php echo htmlspecialchars($p); ?>" <?php echo $program === $p ? 'selected' : ''; ?>><?php echo htmlspecialchars($p); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="department">Department</label>
+                        <select id="department" name="department" required>
+                            <option value="">-- Select Department --</option>
+                            <?php foreach ($DEPT_LABELS as $key => $label): ?>
+                                <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $department === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone (optional)</label>
+                        <input type="text" id="phone" name="phone" value="<?php echo htmlspecialchars($phone); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn-primary btn-full">Submit Registration</button>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+    <script>
+      const PROGRAMS_BY_DEPT = <?php echo json_encode($PROGRAMS_BY_DEPT, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+      function updateProgramOptions() {
+        const deptSel = document.getElementById('department');
+        const progSel = document.getElementById('program');
+        if (!deptSel || !progSel) return;
+        const dept = deptSel.value || '';
+        const list = PROGRAMS_BY_DEPT[dept] || [];
+        const current = '<?php echo htmlspecialchars($program, ENT_QUOTES); ?>';
+        progSel.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Select Program --';
+        progSel.appendChild(placeholder);
+        list.forEach(function(p) {
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p;
+          if (p === current) opt.selected = true;
+          progSel.appendChild(opt);
+        });
+      }
+      document.addEventListener('DOMContentLoaded', function() {
+        const deptSel = document.getElementById('department');
+        if (deptSel) {
+          deptSel.addEventListener('change', updateProgramOptions);
+        }
+        updateProgramOptions();
+      });
+    </script>
+</body>
+</html>
