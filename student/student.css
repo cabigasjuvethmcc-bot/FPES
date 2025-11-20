@@ -1,0 +1,236 @@
+/* Student-specific styles */
+.content-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 2rem;
+}
+
+.welcome-header {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.welcome-header h1 {
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.evaluation-form-container {
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: var(--transition);
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.evaluation-criteria {
+  margin: 2rem 0;
+}
+
+.section-title {
+  margin: 1.25rem 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--dark-color);
+}
+
+.criteria-category {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-color);
+  border-radius: 8px;
+}
+
+.criteria-category h4 {
+  color: var(--primary-color);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.criterion-item {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.criterion-item label {
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.rating-scale {
+  display: flex;
+  gap: 1rem;
+  margin: 0.75rem 0;
+  align-items: center;
+}
+
+.rating-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: var(--transition);
+}
+
+.rating-option:hover {
+  background: var(--light-color);
+}
+
+.rating-option input[type="radio"] {
+  width: auto;
+  margin-bottom: 0.25rem;
+}
+
+.rating-option span {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.submit-btn {
+  background: var(--primary-color);
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
+  display: block;
+}
+
+.submit-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.evaluations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.evaluations-table th, .evaluations-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.evaluations-table th {
+  background: var(--bg-color);
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.status-submitted {
+  background: var(--secondary-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.status-draft {
+  background: var(--warning-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.profile-info {
+  max-width: 600px;
+}
+
+.info-group {
+  display: flex;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--bg-color);
+  border-radius: 8px;
+}
+
+.info-group label {
+  font-weight: 600;
+  width: 150px;
+  color: var(--dark-color);
+}
+
+.info-group span {
+  flex: 1;
+}
+
+.success-message {
+  background: var(--secondary-color);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  background: var(--danger-color);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .content-section {
+    padding: 1rem;
+  }
+  .criteria-category {
+    padding: 1rem;
+  }
+  .rating-scale {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .info-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .info-group label {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+  .info-group span {
+    width: 100%;
+  }
+}
