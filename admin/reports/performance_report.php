@@ -9,6 +9,7 @@ try {
                             u.id, u.full_name, u.department,
                             f.id AS faculty_id,
                             f.employee_id, f.position,
+                            e.subject,
                             COUNT(e.id) as evaluation_count,
                             AVG(e.overall_rating) as avg_rating,
                             MAX(e.created_at) as last_evaluation,
@@ -17,8 +18,8 @@ try {
                            JOIN faculty f ON u.id = f.user_id
                            LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
                            WHERE u.role = 'faculty'
-                           GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position
-                           ORDER BY u.department, avg_rating DESC");
+                           GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position, e.subject
+                           ORDER BY u.department, u.full_name, e.subject");
     $stmt->execute();
     $faculty_performance = $stmt->fetchAll();
 
@@ -207,7 +208,7 @@ try {
                                 <td><strong>Department:</strong> <?php echo htmlspecialchars($faculty['department']); ?></td>
                             </tr>
                             <tr>
-                                <td><strong>Subject:</strong> <?php echo htmlspecialchars($faculty['position'] ?? ''); ?></td>
+                                <td><strong>Subject:</strong> <?php echo htmlspecialchars($faculty['subject'] ?? ''); ?></td>
                                 <td><strong>Evaluation Period:</strong>
                                     <?php
                                     $first = $faculty['first_evaluation'] ? date('M j, Y', strtotime($faculty['first_evaluation'])) : '';
