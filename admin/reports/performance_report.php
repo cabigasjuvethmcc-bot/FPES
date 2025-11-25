@@ -207,7 +207,7 @@ try {
                                 <td><strong>Department:</strong> <?php echo htmlspecialchars($faculty['department']); ?></td>
                             </tr>
                             <tr>
-                                <td><strong>Position:</strong> <?php echo htmlspecialchars($faculty['position'] ?? ''); ?></td>
+                                <td><strong>Subject:</strong> <?php echo htmlspecialchars($faculty['position'] ?? ''); ?></td>
                                 <td><strong>Evaluation Period:</strong>
                                     <?php
                                     $first = $faculty['first_evaluation'] ? date('M j, Y', strtotime($faculty['first_evaluation'])) : '';
