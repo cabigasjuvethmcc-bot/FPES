@@ -103,6 +103,12 @@ foreach ($responses as $r) {
             <div class="meta-item"><strong>Status:</strong><br><?php echo htmlspecialchars(ucfirst($evaluation['status'])); ?></div>
         </div>
 
+        <?php if (!empty($evaluation['sentiment'])): ?>
+        <div class="meta" style="margin-top:4px;">
+            <div class="meta-item"><strong>Sentiment:</strong><br><?php echo htmlspecialchars(ucfirst($evaluation['sentiment'])); ?></div>
+        </div>
+        <?php endif; ?>
+
         <?php if (!empty($evaluation['comments'])): ?>
         <div class="meta" style="margin-top:8px;">
             <div class="meta-item" style="grid-column:1/-1;">
