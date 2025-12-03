@@ -63,12 +63,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Ensure evaluations table supports evaluator metadata
+        // Ensure evaluations table supports evaluator metadata and sentiment
         try {
             $pdo->exec("ALTER TABLE evaluations 
                 ADD COLUMN IF NOT EXISTS evaluator_user_id INT NULL,
                 ADD COLUMN IF NOT EXISTS evaluator_role ENUM('student','faculty','dean') NULL,
-                ADD COLUMN IF NOT EXISTS is_self BOOLEAN DEFAULT 0");
+                ADD COLUMN IF NOT EXISTS is_self BOOLEAN DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS sentiment ENUM('positive','negative','neutral') NULL");
         } catch (PDOException $e) {
             // ignore if not supported or already exists
         }
@@ -88,12 +89,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Dean evaluations must be anonymous
         $is_anonymous = 1;
 
+        $sentiment = classifySentiment($overall_comments);
+
         // Insert evaluation; deans have no student_id
         try {
             $stmt = $pdo->prepare("INSERT INTO evaluations 
-                (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at)
-                VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 'dean', 0, 'submitted', NOW())");
-            $stmt->execute([$faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $_SESSION['user_id']]);
+                (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at)
+                VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, 'dean', 0, 'submitted', NOW())");
+            $stmt->execute([$faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id']]);
         } catch (PDOException $e) {
             // fallback without evaluator columns
             $stmt = $pdo->prepare("INSERT INTO evaluations 
