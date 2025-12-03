@@ -113,6 +113,9 @@ foreach ($responses as $r) {
         <div class="meta" style="margin-top:8px;">
             <div class="meta-item" style="grid-column:1/-1;">
                 <strong>Overall Comments:</strong><br>
+                <?php if (!empty($evaluation['sentiment'])): ?>
+                    <span style="font-size:0.9rem;color:#64748b;">Detected sentiment: <?php echo htmlspecialchars(ucfirst($evaluation['sentiment'])); ?></span><br>
+                <?php endif; ?>
                 <span><?php echo nl2br(htmlspecialchars($evaluation['comments'])); ?></span>
             </div>
         </div>
