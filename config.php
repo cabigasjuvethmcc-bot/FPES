@@ -133,6 +133,44 @@ function sanitizeInput($input) {
     return htmlspecialchars(strip_tags(trim($input)));
 }
 
+function classifySentiment($text) {
+    $clean = strtolower($text);
+    $clean = preg_replace('/[^a-z0-9\s]+/i', ' ', $clean);
+    $words = preg_split('/\s+/', $clean, -1, PREG_SPLIT_NO_EMPTY);
+
+    $positives = [
+        'excellent','great','good','helpful','kind','clear','organized','fair','respectful','approachable','amazing','outstanding','supportive','patient','encouraging','inspiring','nice','friendly',
+        // school-related / taglish
+        'maayos','mabait','mabuti','magaling','matalino','masipag','maunawain','maayos','approachabl','helpful','friendly','top','best','galing','ayos','ok','okay','cool','thebest'
+    ];
+    $negatives = [
+        'bad','rude','unclear','confusing','late','boring','unprepared','unfair','disrespectful','strict','terrible','worst','lazy','arrogant','inconsiderate','unavailable','useless','annoying',
+        // school-related / taglish
+        'panget','pangit','bastos','salbahe','unfair','hindi','walang','tamad','sobrang','galit','sungit','terror','harsh','bully','bias','biased','grabe','worst','abusive'
+    ];
+
+    $pos = 0;
+    $neg = 0;
+    foreach ($words as $w) {
+        if (in_array($w, $positives, true)) {
+            $pos++;
+        } elseif (in_array($w, $negatives, true)) {
+            $neg++;
+        }
+    }
+
+    if ($pos === 0 && $neg === 0) {
+        return 'neutral';
+    }
+    if ($pos > $neg) {
+        return 'positive';
+    }
+    if ($neg > $pos) {
+        return 'negative';
+    }
+    return 'neutral';
+}
+
 function generateCSRFToken() {
     if (!isset($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
