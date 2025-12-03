@@ -83,7 +83,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->exec("ALTER TABLE evaluations 
                 ADD COLUMN IF NOT EXISTS evaluator_user_id INT NULL,
                 ADD COLUMN IF NOT EXISTS evaluator_role ENUM('student','faculty','dean') NULL,
-                ADD COLUMN IF NOT EXISTS is_self BOOLEAN DEFAULT 0");
+                ADD COLUMN IF NOT EXISTS is_self BOOLEAN DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS sentiment ENUM('positive','negative','neutral') NULL");
         } catch (PDOException $e) {
             // Ignore if columns already exist or if server doesn't support IF NOT EXISTS (older MySQL)
         }
@@ -114,12 +115,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Start transaction
         $pdo->beginTransaction();
         
+        $sentiment = classifySentiment($overall_comments);
+
         // Insert evaluation
         // Try inserting with evaluator fields if available; fallback to legacy columns if not
         $inserted = false;
         try {
-            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted', NOW())");
-            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $_SESSION['user_id'], 'student']);
+            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted', NOW())");
+            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id'], 'student']);
             $inserted = true;
         } catch (PDOException $e) {
             // Fallback to legacy insert if evaluator columns are not present
