@@ -14,15 +14,19 @@ try {
                             u.id, u.full_name, u.department,
                             f.id AS faculty_id,
                             f.employee_id, f.position,
+                            e.subject,
                             COUNT(e.id) as evaluation_count,
                             AVG(e.overall_rating) as avg_rating,
                             MAX(e.created_at) as last_evaluation,
-                            MIN(e.created_at) as first_evaluation
+                            MIN(e.created_at) as first_evaluation,
+                            SUM(CASE WHEN e.sentiment = 'positive' THEN 1 ELSE 0 END) AS positive_count,
+                            SUM(CASE WHEN e.sentiment = 'negative' THEN 1 ELSE 0 END) AS negative_count,
+                            SUM(CASE WHEN e.sentiment = 'neutral'  THEN 1 ELSE 0 END) AS neutral_count
                            FROM users u
                            JOIN faculty f ON u.id = f.user_id
                            LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
                            WHERE u.role = 'faculty' AND u.department = ?
-                           GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position
+                           GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position, e.subject
                            ORDER BY avg_rating DESC");
     $stmt->execute([$department]);
     $faculty_performance = $stmt->fetchAll();
@@ -121,7 +125,7 @@ try {
                                 <td><strong>Department:</strong> <?php echo htmlspecialchars($faculty['department']); ?></td>
                             </tr>
                             <tr>
-                                <td><strong>Position:</strong> <?php echo htmlspecialchars($faculty['position'] ?? ''); ?></td>
+                                <td><strong>Subject:</strong> <?php echo htmlspecialchars($faculty['subject'] ?? ''); ?></td>
                                 <td><strong>Evaluation Period:</strong>
                                     <?php
                                     $first = $faculty['first_evaluation'] ? date('M j, Y', strtotime($faculty['first_evaluation'])) : '';
@@ -172,6 +176,15 @@ try {
 
                         <div class="comments-section">
                             <div class="comments-label">Comments from Students</div>
+                            <div style="font-size:11px; margin-bottom:4px;">
+                                <?php
+                                $pos = (int)($faculty['positive_count'] ?? 0);
+                                $neg = (int)($faculty['negative_count'] ?? 0);
+                                $neu = (int)($faculty['neutral_count'] ?? 0);
+                                if ($pos || $neg || $neu): ?>
+                                    Sentiment summary &mdash; Positive: <?php echo $pos; ?>, Negative: <?php echo $neg; ?>, Neutral: <?php echo $neu; ?>
+                                <?php endif; ?>
+                            </div>
                             <div class="comments-box">
                                 <?php
                                 $fid = isset($faculty['faculty_id']) ? (int)$faculty['faculty_id'] : 0;
