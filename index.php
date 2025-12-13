@@ -1,6 +1,18 @@
 <?php
 require_once 'config.php';
 
+// Restore QR target from query string if present (helps when session isn't preserved)
+$qrFacultyId = isset($_GET['faculty_id']) ? (int)$_GET['faculty_id'] : 0;
+$qrSubjectCode = isset($_GET['subject_code']) ? trim((string)($_GET['subject_code'] ?? '')) : '';
+$qrSubjectName = isset($_GET['subject_name']) ? trim((string)($_GET['subject_name'] ?? '')) : '';
+if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
+    $_SESSION['quick_eval_target'] = [
+        'faculty_id'   => $qrFacultyId,
+        'subject_code' => $qrSubjectCode,
+        'subject_name' => $qrSubjectName,
+    ];
+}
+
 $loginError = (string)($_SESSION['login_error'] ?? '');
 $loginPrefillUsername = (string)($_SESSION['login_prefill_username'] ?? '');
 unset($_SESSION['login_error'], $_SESSION['login_prefill_username']);
