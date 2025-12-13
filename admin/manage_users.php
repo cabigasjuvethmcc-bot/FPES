@@ -972,12 +972,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Make prior evaluations countable now ONLY if student_id has been assigned
                 if (trim((string)$new_student_id) !== '') {
+                    // 1) New schema: evaluator_user_id/evaluator_role
                     $updE = $pdo->prepare("UPDATE evaluations 
                                              SET is_counted = 1, status = 'submitted'
                                            WHERE evaluator_user_id = ?
                                              AND evaluator_role = 'student'
                                              AND status = 'pending'");
                     $updE->execute([$existing_user_id]);
+
+                    // 2) Legacy schema: evaluations.student_id references students.id
+                    $sIdStmt = $pdo->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+                    $sIdStmt->execute([$existing_user_id]);
+                    $studentRow = $sIdStmt->fetch(PDO::FETCH_ASSOC);
+                    $studentDbId = (int)($studentRow['id'] ?? 0);
+                    if ($studentDbId > 0) {
+                        $updE2 = $pdo->prepare("UPDATE evaluations
+                                                  SET is_counted = 1, status = 'submitted'
+                                                WHERE student_id = ?
+                                                  AND status = 'pending'");
+                        $updE2->execute([$studentDbId]);
+                    }
                 }
 
                 $user_id = $existing_user_id;
