@@ -90,6 +90,8 @@ $isQrContext = (is_array($qrTarget) && !empty($qrTarget));
 $redirectAfterSignup = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Debug: log that POST was received
+    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] POST RECEIVED - student_signup.php\n", FILE_APPEND);
     $full_name = sanitizeInput($_POST['full_name'] ?? '');
     $student_id = sanitizeInput($_POST['student_id'] ?? '');
     $gender = sanitizeInput($_POST['gender'] ?? '');
