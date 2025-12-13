@@ -115,6 +115,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$user_id, $full_name, $student_id, $gender, $year_level, $program, $department, $email, $phone, $password_hash]);
 
                 $pdo->commit();
+                // Auto-login and continue to the QR evaluation that the student scanned
+                try {
+                    $sstmt = $pdo->prepare("SELECT u.id, u.username, u.role, u.full_name, u.department, s.id AS student_id
+                                            FROM users u
+                                            JOIN students s ON s.user_id = u.id
+                                            WHERE u.id = ? AND u.role = 'student'
+                                            LIMIT 1");
+                    $sstmt->execute([$user_id]);
+                    $u = $sstmt->fetch();
+                    if ($u) {
+                        $_SESSION['user_id'] = (int)$u['id'];
+                        $_SESSION['username'] = $u['username'];
+                        $_SESSION['role'] = $u['role'];
+                        $_SESSION['full_name'] = $u['full_name'];
+                        $_SESSION['department'] = $u['department'];
+                        $_SESSION['student_id'] = (int)$u['student_id'];
+                    }
+                } catch (PDOException $e2) {
+                    // If session setup fails, fall back to showing the success message below
+                }
+
+                if (!headers_sent()) {
+                    header('Location: student/quick_evaluate.php');
+                    exit;
+                }
+
                 $submitted = true;
             } else {
                 $stmt = $pdo->prepare("INSERT INTO pending_registrations
