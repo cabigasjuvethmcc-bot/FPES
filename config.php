@@ -48,6 +48,8 @@ if (!class_exists('DbSessionHandler')) {
     class DbSessionHandler implements SessionHandlerInterface {
         private PDO $pdo;
         private string $table;
+        private ?string $lockName = null;
+        private bool $lockAcquired = false;
 
         public function __construct(PDO $pdo, string $table = 'app_sessions') {
             $this->pdo = $pdo;
@@ -55,10 +57,27 @@ if (!class_exists('DbSessionHandler')) {
         }
 
         public function open($savePath, $sessionName): bool { return true; }
-        public function close(): bool { return true; }
+        public function close(): bool {
+            if ($this->lockAcquired && $this->lockName) {
+                try {
+                    $stmt = $this->pdo->prepare('SELECT RELEASE_LOCK(?)');
+                    $stmt->execute([$this->lockName]);
+                } catch (PDOException $e) {
+                }
+            }
+            $this->lockAcquired = false;
+            $this->lockName = null;
+            return true;
+        }
 
         public function read($id): string {
             try {
+                if (!$this->lockAcquired) {
+                    $this->lockName = 'sess_' . (string)$id;
+                    $lockStmt = $this->pdo->prepare('SELECT GET_LOCK(?, 10)');
+                    $lockStmt->execute([$this->lockName]);
+                    $this->lockAcquired = ((int)$lockStmt->fetchColumn() === 1);
+                }
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
                 $data = $stmt->fetchColumn();
@@ -104,7 +123,9 @@ if (!class_exists('DbSessionHandler')) {
         public function destroy($id): bool {
             try {
                 $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE id = ?");
-                return $stmt->execute([(string)$id]);
+                $ok = $stmt->execute([(string)$id]);
+                $this->close();
+                return $ok;
             } catch (PDOException $e) {
                 return false;
             }
