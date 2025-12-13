@@ -376,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 ?>
                 <?php if (!empty($errors)): ?>
-                    <div class="error-message">
+                    <div class="error-message" style="display: block;">
                         <?php foreach ($errors as $err): ?>
                             <div><?php echo htmlspecialchars($err); ?></div>
                         <?php endforeach; ?>
