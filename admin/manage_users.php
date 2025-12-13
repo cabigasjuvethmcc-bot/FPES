@@ -824,6 +824,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
                 role ENUM('student') NOT NULL DEFAULT 'student',
                 full_name VARCHAR(100) NOT NULL,
                 student_id VARCHAR(20) NULL,
@@ -996,6 +997,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
                 role ENUM('student') NOT NULL DEFAULT 'student',
                 full_name VARCHAR(100) NOT NULL,
                 student_id VARCHAR(20) NULL,
