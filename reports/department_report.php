@@ -26,7 +26,7 @@ try {
                                FROM evaluations e
                                JOIN faculty f ON e.faculty_id = f.id
                                JOIN users u ON f.user_id = u.id
-                              WHERE u.department = ? AND COALESCE(e.is_counted,1) = 1) as total_evaluations");
+                              WHERE u.department = ? AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as total_evaluations");
     $stmt->execute([$department, $department, $department, $department]);
     $dept_stats = $stmt->fetch();
 
@@ -43,7 +43,7 @@ try {
     $stmt = $pdo->prepare("SELECT u.*, f.employee_id, f.position, f.hire_date,
                            (SELECT COUNT(*)
                               FROM evaluations e
-                             WHERE e.faculty_id = f.id AND COALESCE(e.is_counted,1) = 1) as evaluation_count,
+                             WHERE e.faculty_id = f.id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as evaluation_count,
                            (SELECT AVG(e.overall_rating)
                               FROM evaluations e
                              WHERE e.faculty_id = f.id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as avg_rating,
