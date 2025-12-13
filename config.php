@@ -73,12 +73,8 @@ if (!class_exists('DbSessionHandler')) {
                 $decodedData = base64_decode($data);
                 $decodedData = $decodedData !== false ? $decodedData : '';
                 
-                // Debug: log full session data being read
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, stored_length=" . strlen($data) . ", decoded_length=" . strlen($decodedData) . ", data=" . $decodedData . "\n", FILE_APPEND);
-                
                 return $decodedData;
             } catch (PDOException $e) {
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return '';
             }
         }
@@ -88,26 +84,12 @@ if (!class_exists('DbSessionHandler')) {
                 // Encode session data to prevent truncation issues
                 $encodedData = base64_encode($data);
                 
-                // Debug: log full session data being written
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, original_length=" . strlen($data) . ", encoded_length=" . strlen($encodedData) . ", data=" . $data . "\n", FILE_APPEND);
-                
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
-                $result = $stmt->execute([(string)$id, $encodedData, time()]);
-                
-                // Debug: verify what was actually written
-                if ($result) {
-                    $verify = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
-                    $verify->execute([(string)$id]);
-                    $written = $verify->fetch(PDO::FETCH_ASSOC);
-                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE VERIFY: stored_length=" . strlen($written['data'] ?? '') . ", stored_data=" . ($written['data'] ?? '') . "\n", FILE_APPEND);
-                }
-                
-                return $result;
+                return $stmt->execute([(string)$id, $encodedData, time()]);
             } catch (PDOException $e) {
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return false;
             }
         }
