@@ -69,11 +69,7 @@ if (!class_exists('DbSessionHandler')) {
                 }
                 $data = $data ? (string)$data : '';
                 
-                // Decode base64 session data
-                $decodedData = base64_decode($data);
-                $decodedData = $decodedData !== false ? $decodedData : '';
-                
-                return $decodedData;
+                return $data;
             } catch (PDOException $e) {
                 return '';
             }
@@ -81,14 +77,11 @@ if (!class_exists('DbSessionHandler')) {
 
         public function write($id, $data): bool {
             try {
-                // Encode session data to prevent truncation issues
-                $encodedData = base64_encode($data);
-                
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
-                return $stmt->execute([(string)$id, $encodedData, time()]);
+                return $stmt->execute([(string)$id, $data, time()]);
             } catch (PDOException $e) {
                 return false;
             }
