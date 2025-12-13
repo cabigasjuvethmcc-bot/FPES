@@ -188,7 +188,14 @@ function logout() {
     // Show evaluate section by default
     // Only set default if not redirected to a specific section via flash
     if (!document.querySelector('.content-section[style*="display: block"]')) {
-        showSection('evaluate');
+        const hash = (window.location.hash || '').toLowerCase();
+        if (hash === '#history') {
+            showSection('history');
+        } else if (hash === '#profile') {
+            showSection('profile');
+        } else {
+            showSection('evaluate');
+        }
     }
 });
 
