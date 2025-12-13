@@ -2,6 +2,9 @@
 require_once '../config.php';
 requireRole('student');
 
+// Check if we should show evaluation directly (from QR flow)
+$showEvaluationDirectly = isset($_GET['view']) && $_GET['view'] === 'evaluation';
+
 // Get student info
 $stmt = $pdo->prepare("SELECT s.*, u.full_name, u.department FROM students s 
                        JOIN users u ON s.user_id = u.id 
