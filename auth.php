@@ -45,6 +45,22 @@ if ($action === 'login') {
             $user = $candidate;
         }
 
+        // 1b) Student by users.username (email/temporary username). This supports
+        // QR-based signups where students.student_id may still be NULL.
+        if (!$authenticated) {
+            $stmt = $pdo->prepare("SELECT u.*, f.id as faculty_id, s.id as student_id 
+                                   FROM users u 
+                                   LEFT JOIN faculty f ON u.id = f.user_id 
+                                   LEFT JOIN students s ON u.id = s.user_id 
+                                   WHERE u.username = ? AND u.role = 'student'");
+            $stmt->execute([$username]);
+            $candidate = $stmt->fetch();
+            if ($candidate && password_verify($password, $candidate['password'])) {
+                $authenticated = true;
+                $user = $candidate;
+            }
+        }
+
         // 2) Faculty by employee_id
         if (!$authenticated) {
             $stmt = $pdo->prepare("SELECT u.*, f.id as faculty_id, s.id as student_id 
