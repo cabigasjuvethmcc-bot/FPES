@@ -218,8 +218,10 @@ unset($_SESSION['quick_eval']);
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="submit_evaluation.php">
+            <form id="evaluation-only-form" method="post" action="submit_evaluation.php">
                 <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                <input type="hidden" name="expected_criteria_count" value="<?php echo (int)count($criteria); ?>">
+                <div id="submit-error" class="error-message" style="display:none;"></div>
                 
                 <?php if ($quickEval && !empty($quickEval['faculty_id'])): ?>
                     <div class="form-group">
@@ -280,9 +282,64 @@ unset($_SESSION['quick_eval']);
 
     <script>
         (function () {
-            var form = document.querySelector('form');
+            var form = document.getElementById('evaluation-only-form');
             if (!form) return;
+
+            function showError(msg) {
+                var box = document.getElementById('submit-error');
+                if (!box) return;
+                box.textContent = msg;
+                box.style.display = 'block';
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function hideError() {
+                var box = document.getElementById('submit-error');
+                if (!box) return;
+                box.textContent = '';
+                box.style.display = 'none';
+            }
+
+            function validateAllRatings() {
+                var radios = form.querySelectorAll('input[type="radio"][name^="rating_"]');
+                var names = {};
+                radios.forEach(function (r) { names[r.name] = true; });
+                var groupNames = Object.keys(names);
+
+                for (var i = 0; i < groupNames.length; i++) {
+                    var n = groupNames[i];
+                    var checked = form.querySelector('input[type="radio"][name="' + n + '"]:checked');
+                    if (!checked) {
+                        var first = form.querySelector('input[type="radio"][name="' + n + '"]');
+                        if (first) {
+                            first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            first.focus({ preventScroll: true });
+                        }
+                        showError('Please answer all evaluation criteria before submitting.');
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // Ensure clicking the button always gives feedback
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function () {
+                    hideError();
+                });
+            }
+
             form.addEventListener('submit', function (e) {
+                hideError();
+
+                // Custom validation for radio groups
+                if (!validateAllRatings()) {
+                    e.preventDefault();
+                    return;
+                }
+
+                // Native validation fallback
                 if (!form.checkValidity()) {
                     e.preventDefault();
                     if (typeof form.reportValidity === 'function') {
@@ -292,6 +349,7 @@ unset($_SESSION['quick_eval']);
                     if (firstInvalid && typeof firstInvalid.scrollIntoView === 'function') {
                         firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
+                    showError('Please complete all required fields before submitting.');
                 }
             });
         })();
