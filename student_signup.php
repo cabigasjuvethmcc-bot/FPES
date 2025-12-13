@@ -151,16 +151,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
-            $emailCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
-            $emailCheck->execute([$email, $email]);
-            $emailExists = $emailCheck->fetch();
+            // For QR signup, allow existing emails and handle via auto-login logic later
+            if (!$isQrSignup) {
+                $emailCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
+                $emailCheck->execute([$email, $email]);
+                $emailExists = $emailCheck->fetch();
 
-            $pendingEmailCheck = $pdo->prepare("SELECT id FROM pending_registrations WHERE email = ? AND status IN ('pending','approved') LIMIT 1");
-            $pendingEmailCheck->execute([$email]);
-            $pendingEmailExists = $pendingEmailCheck->fetch();
+                $pendingEmailCheck = $pdo->prepare("SELECT id FROM pending_registrations WHERE email = ? AND status IN ('pending','approved') LIMIT 1");
+                $pendingEmailCheck->execute([$email]);
+                $pendingEmailExists = $pendingEmailCheck->fetch();
 
-            if ($emailExists || $pendingEmailExists) {
-                $errors[] = 'This Gmail/email is already in use. Please use another email or login instead.';
+                if ($emailExists || $pendingEmailExists) {
+                    $errors[] = 'This Gmail/email is already in use. Please use another email or login instead.';
+                }
             }
 
             if ($student_id !== '') {
