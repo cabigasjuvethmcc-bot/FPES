@@ -75,14 +75,24 @@ if (!class_exists('DbSessionHandler')) {
 
         public function write($id, $data): bool {
             try {
-                // Debug: log what's being written to session
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, data=" . substr($data, 0, 200) . "...\n", FILE_APPEND);
+                // Debug: log full session data being written
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
                 
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
-                return $stmt->execute([(string)$id, (string)$data, time()]);
+                $result = $stmt->execute([(string)$id, $data, time()]);
+                
+                // Debug: verify what was actually written
+                if ($result) {
+                    $verify = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
+                    $verify->execute([(string)$id]);
+                    $written = $verify->fetch(PDO::FETCH_ASSOC);
+                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE VERIFY: stored_length=" . strlen($written['data'] ?? '') . ", stored_data=" . ($written['data'] ?? '') . "\n", FILE_APPEND);
+                }
+                
+                return $result;
             } catch (PDOException $e) {
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return false;
