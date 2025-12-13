@@ -21,7 +21,7 @@ $stmt = $pdo->prepare("SELECT
                         AVG(e.overall_rating) as avg_rating
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       LEFT JOIN evaluations e ON e.faculty_id = f.id AND e.status = 'submitted'
+                       LEFT JOIN evaluations e ON e.faculty_id = f.id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        WHERE u.department = ?");
 $stmt->execute([$department]);
 $overall_stats = $stmt->fetch();
@@ -35,7 +35,7 @@ $stmt = $pdo->prepare("SELECT
                         MAX(e.overall_rating) as max_rating
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                       LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        WHERE u.department = ?
                        GROUP BY f.id, u.full_name, u.department, f.position
                        ORDER BY avg_rating DESC");
@@ -50,7 +50,7 @@ $stmt = $pdo->prepare("SELECT
                         AVG(e.overall_rating) as avg_rating
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                       LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        WHERE u.department = ?
                        GROUP BY u.department
                        ORDER BY avg_rating DESC");
@@ -65,7 +65,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM evaluations e
                        JOIN faculty f ON e.faculty_id = f.id
                        JOIN users u ON f.user_id = u.id
-                       WHERE e.status = 'submitted' AND u.department = ?
+                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ?
                        GROUP BY e.academic_year, e.semester
                        ORDER BY e.academic_year DESC, e.semester");
 $stmt->execute([$department]);
@@ -78,7 +78,7 @@ $stmt = $pdo->prepare("SELECT
                         COUNT(e.id) as evaluation_count
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                       JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        WHERE u.department = ?
                        GROUP BY f.id, u.full_name, u.department, f.position
                        HAVING COUNT(e.id) >= 3
@@ -93,7 +93,7 @@ $stmt = $pdo->prepare("SELECT
                         COUNT(e.id) as evaluation_count
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                       JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        WHERE u.department = ?
                        GROUP BY f.id, u.full_name, u.department, f.position
                        HAVING COUNT(e.id) >= 3
@@ -117,7 +117,7 @@ $stmt = $pdo->prepare("SELECT
                        JOIN evaluations e ON er.evaluation_id = e.id
                        JOIN faculty f ON e.faculty_id = f.id
                        JOIN users u ON f.user_id = u.id
-                       WHERE e.status = 'submitted' AND u.department = ?
+                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ?
                        GROUP BY ec.id, ec.category, ec.criterion
                        ORDER BY ec.category, avg_rating DESC");
 $stmt->execute([$department]);
