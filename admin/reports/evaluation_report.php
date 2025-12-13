@@ -4,6 +4,11 @@ requireRole('admin');
 
 // Get evaluation statistics and data
 try {
+    try {
+        $pdo->exec("ALTER TABLE evaluations ADD COLUMN is_counted TINYINT(1) NOT NULL DEFAULT 1");
+    } catch (PDOException $e) {
+        // ignore
+    }
     // Get evaluation summary statistics
     $stmt = $pdo->prepare("SELECT 
                             COUNT(*) as total_evaluations,
@@ -11,7 +16,8 @@ try {
                             COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_evaluations,
                             AVG(overall_rating) as avg_rating,
                             COUNT(DISTINCT faculty_id) as evaluated_faculty
-                           FROM evaluations");
+                           FROM evaluations
+                           WHERE COALESCE(is_counted,1) = 1");
     $stmt->execute();
     $eval_stats = $stmt->fetch();
 
@@ -24,6 +30,7 @@ try {
                            FROM evaluations e
                            JOIN faculty f ON e.faculty_id = f.id
                            JOIN users uf ON f.user_id = uf.id
+                           WHERE COALESCE(e.is_counted,1) = 1
                            GROUP BY uf.department
                            ORDER BY evaluation_count DESC");
     $stmt->execute();
