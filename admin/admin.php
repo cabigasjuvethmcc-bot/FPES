@@ -370,7 +370,7 @@ $adminDisplayName = $isSystemAdmin ? 'Admin' : ($admin['full_name'] ?? 'Admin');
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Student ID (requested)</th>
+                                <th>Request ID</th>
                                 <th>Gender</th>
                                 <th>Year Level</th>
                                 <th>Program</th>
@@ -1205,7 +1205,7 @@ $adminDisplayName = $isSystemAdmin ? 'Admin' : ($admin['full_name'] ?? 'Admin');
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${r.full_name || ''}</td>
-                        <td>${r.student_id || ''}</td>
+                        <td>${r.id || ''}</td>
                         <td>${r.gender || ''}</td>
                         <td>${r.year_level || ''}</td>
                         <td>${r.program || ''}</td>
