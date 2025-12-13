@@ -63,8 +63,8 @@ if (!class_exists('DbSessionHandler')) {
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 $data = $row ? (string)$row['data'] : '';
                 
-                // Debug: log what's being read from session
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data=" . substr($data, 0, 200) . "...\n", FILE_APPEND);
+                // Debug: log full session data being read
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
                 
                 return $data;
             } catch (PDOException $e) {
