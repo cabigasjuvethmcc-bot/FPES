@@ -101,6 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             // ignore and default to counted
         }
+
+        // If not countable yet, store as pending so reports that filter on status
+        // will not include it even when is_counted is unavailable.
+        $evaluationStatus = ($is_counted === 1) ? 'submitted' : 'pending';
         
         // Ensure evaluations table has evaluator metadata and supports NULL student_id
         try {
@@ -151,17 +155,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Try inserting with evaluator fields if available; fallback to legacy columns if not
         $inserted = false;
         try {
-            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted', NOW(), ?)");
-            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id'], 'student', $is_counted]);
+            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NOW(), ?)");
+            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id'], 'student', $evaluationStatus, $is_counted]);
             $inserted = true;
         } catch (PDOException $e) {
             // Fallback to legacy insert if evaluator columns are not present
             try {
-                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, 'submitted', NOW(), ?)");
-                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $is_counted]);
+                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)");
+                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $evaluationStatus, $is_counted]);
             } catch (PDOException $e2) {
-                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())");
-                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous]);
+                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $evaluationStatus]);
             }
         }
         
