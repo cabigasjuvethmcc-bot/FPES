@@ -164,6 +164,6 @@ $_SESSION['quick_eval'] = [
 // Clear original target (we now have a validated quick_eval)
 unset($_SESSION['quick_eval_target']);
 
-// Redirect to student dashboard; it will pre-select this evaluation
-header('Location: student.php#evaluate');
+// Redirect to student dashboard with a flag to show evaluation directly
+header('Location: student.php?view=evaluation');
 exit;
