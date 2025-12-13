@@ -880,6 +880,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // ignore
             }
 
+            // Ensure evaluations.status supports pending/submitted on older schemas
+            try {
+                $pdo->exec("ALTER TABLE evaluations MODIFY status ENUM('pending','draft','submitted','reviewed') NOT NULL DEFAULT 'draft'");
+            } catch (PDOException $e2) {
+                // ignore
+            }
+
             $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NULL,
