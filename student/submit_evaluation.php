@@ -4,9 +4,6 @@ requireRole('student');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        file_put_contents(__DIR__ . '/../signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SUBMIT_EVAL POST: user_id=" . (isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0) . ", student_id=" . (isset($_SESSION['student_id']) ? (int)$_SESSION['student_id'] : 0) . ", faculty_id=" . (int)($_POST['faculty_id'] ?? 0) . ", subject=" . (string)($_POST['subject'] ?? '') . "\n", FILE_APPEND);
-        $ratingKeys = array_filter(array_keys($_POST), function ($k) { return strpos($k, 'rating_') === 0; });
-        file_put_contents(__DIR__ . '/../signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SUBMIT_EVAL ratings_count=" . count($ratingKeys) . "\n", FILE_APPEND);
         // Validate CSRF token
         if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
             throw new Exception('Invalid security token');
@@ -241,7 +238,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        file_put_contents(__DIR__ . '/../signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SUBMIT_EVAL ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
         
         echo json_encode([
             'success' => false,
