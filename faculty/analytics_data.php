@@ -25,6 +25,7 @@ try {
     $where = [
         "e.faculty_id = ?",
         "e.status = 'submitted'",
+        "COALESCE(e.is_counted,1) = 1",
         "(e.evaluator_role = 'student' OR e.student_id IS NOT NULL)"
     ];
     if ($semester !== '') { $where[] = 'e.semester = ?'; $params[] = $semester; }
@@ -98,6 +99,15 @@ try {
     $stmt->execute($params);
     $timeseries = $stmt->fetchAll();
 
+    // Additional query for semester and academic year averages
+    $stmt = $pdo->prepare("SELECT semester, academic_year, AVG(overall_rating) as avg_rating, COUNT(*) as count
+                           FROM evaluations
+                           WHERE faculty_id = ? AND status = 'submitted' AND COALESCE(is_counted,1) = 1
+                           GROUP BY semester, academic_year
+                           ORDER BY academic_year, semester");
+    $stmt->execute([(int)$_SESSION['faculty_id']]);
+    $semesterAverages = $stmt->fetchAll();
+
     echo json_encode([
         'success' => true,
         'summary' => [
@@ -105,7 +115,8 @@ try {
             'avg_overall_rating' => $summary['avg_overall_rating'] !== null ? (float)$summary['avg_overall_rating'] : null,
         ],
         'criteria' => $criteria,
-        'timeseries' => $timeseries
+        'timeseries' => $timeseries,
+        'semesterAverages' => $semesterAverages
     ]);
 } catch (Exception $e) {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
