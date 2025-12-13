@@ -22,7 +22,11 @@ try {
                             (SELECT COUNT(*) FROM users WHERE role = 'student' AND department = ?) as student_count,
                             (SELECT COUNT(*) FROM users WHERE role = 'faculty' AND department = ?) as faculty_count,
                             (SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND department = ?) as new_users_30_days,
-                            (SELECT COUNT(*) FROM evaluations e JOIN users u ON e.faculty_id = u.id WHERE u.department = ?) as total_evaluations");
+                            (SELECT COUNT(*)
+                               FROM evaluations e
+                               JOIN faculty f ON e.faculty_id = f.id
+                               JOIN users u ON f.user_id = u.id
+                              WHERE u.department = ? AND COALESCE(e.is_counted,1) = 1) as total_evaluations");
     $stmt->execute([$department, $department, $department, $department]);
     $dept_stats = $stmt->fetch();
 
@@ -37,8 +41,12 @@ try {
 
     // Get faculty in this department, including assigned subjects via subquery
     $stmt = $pdo->prepare("SELECT u.*, f.employee_id, f.position, f.hire_date,
-                           (SELECT COUNT(*) FROM evaluations WHERE faculty_id = u.id) as evaluation_count,
-                           (SELECT AVG(overall_rating) FROM evaluations WHERE faculty_id = u.id AND status = 'submitted') as avg_rating,
+                           (SELECT COUNT(*)
+                              FROM evaluations e
+                             WHERE e.faculty_id = f.id AND COALESCE(e.is_counted,1) = 1) as evaluation_count,
+                           (SELECT AVG(e.overall_rating)
+                              FROM evaluations e
+                             WHERE e.faculty_id = f.id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as avg_rating,
                            (SELECT GROUP_CONCAT(DISTINCT CONCAT(COALESCE(sfs.subject_code, ''), CASE WHEN sfs.subject_code IS NOT NULL AND sfs.subject_code <> '' THEN ' - ' ELSE '' END, sfs.subject_name) SEPARATOR ', ')
                               FROM student_faculty_subjects sfs
                               WHERE sfs.faculty_user_id = u.id) as subjects_assigned
