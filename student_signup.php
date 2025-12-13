@@ -55,6 +55,19 @@ if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
     ];
 }
 
+$quickEvalRedirectUrl = 'student/quick_evaluate.php';
+if (!empty($_SESSION['quick_eval_target'])) {
+    $t = $_SESSION['quick_eval_target'];
+    $qs = http_build_query([
+        'faculty_id' => (int)($t['faculty_id'] ?? 0),
+        'subject_code' => (string)($t['subject_code'] ?? ''),
+        'subject_name' => (string)($t['subject_name'] ?? ''),
+    ]);
+    if ($qs !== '') {
+        $quickEvalRedirectUrl .= '?' . $qs;
+    }
+}
+
 $isQrContext = !empty($_SESSION['quick_eval_target']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -140,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['student_id'] = isset($u['student_id']) ? (int)$u['student_id'] : 0;
 
                         if (!headers_sent()) {
-                            header('Location: student/quick_evaluate.php');
+                            header('Location: ' . $quickEvalRedirectUrl);
                             exit;
                         }
                     }
@@ -196,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!headers_sent()) {
-                    header('Location: student/quick_evaluate.php');
+                    header('Location: ' . $quickEvalRedirectUrl);
                     exit;
                 }
 
@@ -241,10 +254,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php if ($isQrContext): ?>
                     <div class="success-message">Account created. Redirecting you to your evaluation...</div>
                     <div style="margin-top:0.75rem; font-size:0.95rem; text-align:center;">
-                        <a href="student/quick_evaluate.php" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Continue</a>
+                        <a href="<?php echo htmlspecialchars($quickEvalRedirectUrl); ?>" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Continue</a>
                     </div>
                     <script>
-                        setTimeout(function(){ window.location.href = 'student/quick_evaluate.php'; }, 400);
+                        setTimeout(function(){ window.location.href = <?php echo json_encode($quickEvalRedirectUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>; }, 400);
                     </script>
                 <?php else: ?>
                     <div class="success-message">Your registration has been submitted and is awaiting admin approval.</div>
