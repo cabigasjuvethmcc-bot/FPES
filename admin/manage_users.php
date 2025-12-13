@@ -860,6 +860,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Invalid registration ID');
             }
 
+            // Ensure users account_status and evaluations is_counted exist
+            try {
+                $pdo->exec("ALTER TABLE users ADD COLUMN account_status ENUM('active','pending','blocked') NOT NULL DEFAULT 'active'");
+            } catch (PDOException $e2) {
+                // ignore
+            }
+            try {
+                $pdo->exec("ALTER TABLE evaluations ADD COLUMN is_counted TINYINT(1) NOT NULL DEFAULT 1");
+            } catch (PDOException $e2) {
+                // ignore
+            }
+
             $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 role ENUM('student') NOT NULL DEFAULT 'student',
@@ -926,21 +938,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Generated Student ID already exists. Please try again.');
             }
 
-            // Insert into users
-            $insUser = $pdo->prepare("INSERT INTO users (username, password, role, full_name, email, department) VALUES (?, ?, 'student', ?, ?, ?)");
-            $insUser->execute([$username, $password_hash, $full_name, $email, $department]);
-            $user_id = (int)$pdo->lastInsertId();
-
-            // Ensure gender column exists in students (same as in add_user)
+            // Ensure gender column exists in students
             try {
                 $pdo->exec("ALTER TABLE students ADD COLUMN gender ENUM('Male','Female') NULL AFTER user_id");
             } catch (PDOException $e2) {
-                // ignore if already exists
+                // ignore
             }
 
-            // Insert into students
-            $insStudent = $pdo->prepare("INSERT INTO students (user_id, student_id, year_level, program, gender) VALUES (?, ?, ?, ?, ?)");
-            $insStudent->execute([$user_id, $new_student_id, $year_level, $program, $gender]);
+            $existing_user_id = (int)($pending['user_id'] ?? 0);
+            if ($existing_user_id > 0) {
+                // QR-created user exists: activate and assign student_id
+                $updUser = $pdo->prepare("UPDATE users SET username = ?, department = ?, account_status = 'active' WHERE id = ? AND role = 'student'");
+                $updUser->execute([$username, $department, $existing_user_id]);
+
+                $updStudent = $pdo->prepare("UPDATE students SET student_id = ?, year_level = ?, program = ?, gender = ? WHERE user_id = ?");
+                $updStudent->execute([$new_student_id, $year_level, $program, $gender, $existing_user_id]);
+
+                // Make prior evaluations countable now
+                $updE = $pdo->prepare("UPDATE evaluations SET is_counted = 1 WHERE evaluator_user_id = ? AND evaluator_role = 'student'");
+                $updE->execute([$existing_user_id]);
+
+                $user_id = $existing_user_id;
+            } else {
+                // Legacy pending-only registration: create users + students
+                $insUser = $pdo->prepare("INSERT INTO users (username, password, role, full_name, email, department, account_status) VALUES (?, ?, 'student', ?, ?, ?, 'active')");
+                $insUser->execute([$username, $password_hash, $full_name, $email, $department]);
+                $user_id = (int)$pdo->lastInsertId();
+
+                $insStudent = $pdo->prepare("INSERT INTO students (user_id, student_id, year_level, program, gender) VALUES (?, ?, ?, ?, ?)");
+                $insStudent->execute([$user_id, $new_student_id, $year_level, $program, $gender]);
+            }
 
             // Mark pending registration as approved
             $upd = $pdo->prepare("UPDATE pending_registrations SET status = 'approved' WHERE id = ?");
@@ -948,7 +975,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            echo json_encode(['success' => true, 'message' => 'Student registration approved and account created.']);
+            echo json_encode(['success' => true, 'message' => 'Student registration approved and account activated.']);
         } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
