@@ -58,6 +58,7 @@ try {
                                LEFT JOIN users ue ON e.evaluator_user_id = ue.id
                                LEFT JOIN students s ON e.student_id = s.id
                                LEFT JOIN users us ON s.user_id = us.id
+                               WHERE COALESCE(e.is_counted,1) = 1
                                ORDER BY e.created_at DESC
                                LIMIT 50");
         $stmt->execute();
@@ -74,6 +75,7 @@ try {
                                JOIN users uf ON f.user_id = uf.id
                                LEFT JOIN students s ON e.student_id = s.id
                                LEFT JOIN users us ON s.user_id = us.id
+                               WHERE COALESCE(e.is_counted,1) = 1
                                ORDER BY e.created_at DESC
                                LIMIT 50");
         $stmt->execute();
