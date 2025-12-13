@@ -42,6 +42,8 @@ $department = '';
 $email = '';
 $phone = '';
 
+$isQrContext = !empty($_SESSION['quick_eval_target']);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = sanitizeInput($_POST['full_name'] ?? '');
     $student_id = sanitizeInput($_POST['student_id'] ?? '');
@@ -114,6 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             header('Location: student/quick_evaluate.php');
                             exit;
                         }
+                    }
+                    // Password mismatch: send the student to login so they can continue the QR evaluation
+                    $_SESSION['login_error'] = 'An account with this email already exists. Please login to continue.';
+                    $_SESSION['login_prefill_username'] = $email;
+                    if (!headers_sent()) {
+                        header('Location: index.php');
+                        exit;
                     }
                     throw new Exception('An account with this email already exists. Please login instead.');
                 }
@@ -198,39 +207,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container" id="login-container">
         <h1 class="app-title">Faculty Performance Evaluation System</h1>
-        <?php
-        // Lightweight debug: show how many pending registrations currently exist
-        try {
-            $dbgStmt = $pdo->query("SELECT COUNT(*) AS c FROM pending_registrations");
-            $dbgRow = $dbgStmt->fetch();
-            $dbgCount = (int)($dbgRow['c'] ?? 0);
-        } catch (PDOException $e) {
-            $dbgCount = -1;
-        }
-        $dbgMethod = $_SERVER['REQUEST_METHOD'] ?? 'unknown';
-        $dbgIsPost = ($dbgMethod === 'POST') ? 'yes' : 'no';
-        $dbgErrors = is_array($errors) ? count($errors) : -1;
-        $dbgErrorText = '';
-        if (is_array($errors) && !empty($errors)) {
-            $dbgErrorText = implode(' | ', array_map('strval', $errors));
-        }
-        $dbgSubmitted = $submitted ? 'yes' : 'no';
-        ?>
-        <div style="margin:0 auto 1rem auto; max-width:520px; font-size:0.8rem; color:#555; text-align:center; line-height:1.4;">
-            Debug: rows = <?php echo $dbgCount; ?> |
-            method = <?php echo htmlspecialchars($dbgMethod); ?> |
-            isPostBlock = <?php echo $dbgIsPost; ?> |
-            errors = <?php echo $dbgErrors; ?> |
-            submitted = <?php echo $dbgSubmitted; ?>
-            <?php if ($dbgErrorText !== ''): ?>
-            | errText = <?php echo htmlspecialchars($dbgErrorText); ?>
-            <?php endif; ?>
-        </div>
         <div class="login-form" role="region" aria-labelledby="signup-title">
             <h2 id="signup-title" class="login-title">Student Signup</h2>
             <hr class="divider" aria-hidden="true" />
             <?php if ($submitted && empty($errors)): ?>
-                <div class="success-message">Your registration has been submitted and is awaiting admin approval.</div>
+                <?php if ($isQrContext): ?>
+                    <div class="success-message">Account created. Redirecting you to your evaluation...</div>
+                    <div style="margin-top:0.75rem; font-size:0.95rem; text-align:center;">
+                        <a href="student/quick_evaluate.php" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Continue</a>
+                    </div>
+                    <script>
+                        setTimeout(function(){ window.location.href = 'student/quick_evaluate.php'; }, 400);
+                    </script>
+                <?php else: ?>
+                    <div class="success-message">Your registration has been submitted and is awaiting admin approval.</div>
+                <?php endif; ?>
             <?php else: ?>
                 <?php
                 // If a POST happened but no success and no errors, show a generic message
