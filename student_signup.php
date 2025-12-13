@@ -32,8 +32,6 @@ try {
 $errors = [];
 $submitted = false;
 
-$fieldErrors = [];
-
 // Initialize form values for repopulation
 $full_name = '';
 $student_id = '';
@@ -63,26 +61,6 @@ function buildQuickEvalRedirectUrl($target) {
         $url .= '?' . $qs;
     }
     return $url;
-}
-
-function validatePasswordRequirements($password) {
-    $issues = [];
-    if (strlen((string)$password) < 8) {
-        $issues[] = 'at least 8 characters';
-    }
-    if (!preg_match('/[a-z]/', (string)$password)) {
-        $issues[] = 'one lowercase letter';
-    }
-    if (!preg_match('/[A-Z]/', (string)$password)) {
-        $issues[] = 'one uppercase letter';
-    }
-    if (!preg_match('/\d/', (string)$password)) {
-        $issues[] = 'one number';
-    }
-    if (!preg_match('/[^A-Za-z0-9]/', (string)$password)) {
-        $issues[] = 'one special character';
-    }
-    return $issues;
 }
 
 if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
@@ -158,38 +136,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Debug: log QR signup detection
     file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR DETECTION: qrCandidate=" . json_encode($qrCandidate) . " isQrSignup=" . ($isQrSignup ? 'YES' : 'NO') . " redirectAfterSignup=" . $redirectAfterSignup . "\n", FILE_APPEND);
 
-    if ($full_name === '') {
-        $fieldErrors['full_name'] = 'Full Name is required.';
+    if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
+        $errors[] = 'Please fill in all required fields.';
     }
-    if ($year_level === '') {
-        $fieldErrors['year_level'] = 'Year Level is required.';
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Please enter a valid email address.';
     }
-    if ($program === '') {
-        $fieldErrors['program'] = 'Program is required.';
+    if ($password !== $confirm_password) {
+        $errors[] = 'Password and Confirm Password do not match.';
     }
-    if ($department === '') {
-        $fieldErrors['department'] = 'Department is required.';
-    }
-    if ($email === '') {
-        $fieldErrors['email'] = 'Email is required.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $fieldErrors['email'] = 'Please enter a valid email address.';
-    }
-    if ($password === '') {
-        $fieldErrors['password'] = 'Password is required.';
-    } else {
-        $pwIssues = validatePasswordRequirements($password);
-        if (!empty($pwIssues)) {
-            $fieldErrors['password'] = 'Password must contain ' . implode(', ', $pwIssues) . '.';
-        }
-    }
-    if ($confirm_password === '') {
-        $fieldErrors['confirm_password'] = 'Please confirm your password.';
-    } elseif ($password !== '' && $password !== $confirm_password) {
-        $fieldErrors['confirm_password'] = 'Passwords do not match.';
+    if (strlen($password) < 8) {
+        $errors[] = 'Password must be at least 8 characters.';
     }
 
-    if (empty($fieldErrors)) {
+    if (empty($errors)) {
         try {
             // For QR signup, allow existing emails and handle via auto-login logic later
             if (!$isQrSignup) {
@@ -202,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pendingEmailExists = $pendingEmailCheck->fetch();
 
                 if ($emailExists || $pendingEmailExists) {
-                    $fieldErrors['email'] = 'This email is already in use. Please use another email or login instead.';
+                    $errors[] = 'This Gmail/email is already in use. Please use another email or login instead.';
                 }
             }
 
@@ -216,20 +176,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pendingUsernameExists = $pendingUsernameCheck->fetch();
 
                 if ($usernameExists || $pendingUsernameExists) {
-                    $fieldErrors['student_id'] = 'This Student ID is already taken. Please use another one.';
+                    $errors[] = 'This username/student ID is already taken. Please use another one.';
                 }
             }
         } catch (PDOException $e) {
-            $errors[] = 'Unable to validate your details at the moment. Please try again.';
+            $errors[] = 'Unable to validate username/email at the moment. Please try again.';
         }
     }
 
     // Debug: log any validation errors
-    if (!empty($errors) || !empty($fieldErrors)) {
-        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] VALIDATION ERRORS: errors=" . json_encode($errors) . " fieldErrors=" . json_encode($fieldErrors) . "\n", FILE_APPEND);
+    if (!empty($errors)) {
+        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] VALIDATION ERRORS: " . json_encode($errors) . "\n", FILE_APPEND);
     }
 
-    if (empty($errors) && empty($fieldErrors)) {
+    if (empty($errors)) {
         file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] ERRORS EMPTY - proceeding to signup\n", FILE_APPEND);
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         try {
@@ -282,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Password mismatch for existing user, redirecting to login\n", FILE_APPEND);
                     // Password mismatch: send the student to login so they can continue the QR evaluation
-                    $_SESSION['login_error'] = 'This email is already registered. The password you entered is incorrect. Please login with your correct password or reset it.';
+                    $_SESSION['login_error'] = 'An account with this email already exists. Please login to continue.';
                     $_SESSION['login_prefill_username'] = $email;
                     if (!headers_sent()) {
                         session_write_close();
@@ -368,20 +328,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $submitted = true;
             }
         } catch (PDOException $e) {
-            error_log('STUDENT SIGNUP PDO ERROR: ' . $e->getMessage());
-
-            $sqlState = (string)($e->getCode() ?? '');
-            $driverCode = isset($e->errorInfo[1]) ? (int)$e->errorInfo[1] : 0;
-            $driverMsg = isset($e->errorInfo[2]) ? (string)$e->errorInfo[2] : '';
-
-            // Friendly handling for common MySQL duplicate-entry errors
-            if ($sqlState === '23000' || $driverCode === 1062 || stripos($driverMsg, 'Duplicate entry') !== false) {
-                // If duplicate happens during QR signup, it usually means the email(username) already exists.
-                $fieldErrors['email'] = 'This email is already registered. Please login instead.';
-                $errors[] = 'Account already exists. Please login using your email and password.';
-            } else {
-                $errors[] = 'Registration failed. Please double-check your details and try again. If this continues, contact the administrator.';
-            }
+            // Surface the actual reason so issues in production are visible
+            $errors[] = 'Unable to submit registration: ' . $e->getMessage();
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
@@ -423,15 +371,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php else: ?>
                 <?php
                 // If a POST happened but no success and no errors, show a generic message
-                if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors) && !$submitted && empty($fieldErrors)) {
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors) && !$submitted) {
                     $errors[] = 'Registration could not be completed. Please check your inputs or contact the administrator.';
-                }
-                if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$submitted && !empty($fieldErrors) && empty($errors)) {
-                    $errors[] = 'Please fix the highlighted fields below.';
                 }
                 ?>
                 <?php if (!empty($errors)): ?>
-                    <div class="error-message" style="display: block;">
+                    <div class="error-message">
                         <?php foreach ($errors as $err): ?>
                             <div><?php echo htmlspecialchars($err); ?></div>
                         <?php endforeach; ?>
@@ -458,13 +403,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php endif; ?>
                     <div class="form-group">
                         <label for="full_name">Full Name</label>
-                        <input type="text" id="full_name" name="full_name" class="<?php echo !empty($fieldErrors['full_name']) ? 'input-error' : ''; ?>" value="<?php echo htmlspecialchars($full_name); ?>" required>
-                        <?php if (!empty($fieldErrors['full_name'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['full_name']); ?></div><?php endif; ?>
+                        <input type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($full_name); ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="student_id">Student ID (optional)</label>
-                        <input type="text" id="student_id" name="student_id" class="<?php echo !empty($fieldErrors['student_id']) ? 'input-error' : ''; ?>" value="<?php echo htmlspecialchars($student_id); ?>">
-                        <?php if (!empty($fieldErrors['student_id'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['student_id']); ?></div><?php endif; ?>
+                        <input type="text" id="student_id" name="student_id" value="<?php echo htmlspecialchars($student_id); ?>">
                     </div>
                     <div class="form-group">
                         <label for="gender">Gender</label>
@@ -476,12 +419,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label for="year_level">Year Level</label>
-                        <input type="text" id="year_level" name="year_level" class="<?php echo !empty($fieldErrors['year_level']) ? 'input-error' : ''; ?>" value="<?php echo htmlspecialchars($year_level); ?>" required>
-                        <?php if (!empty($fieldErrors['year_level'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['year_level']); ?></div><?php endif; ?>
+                        <input type="text" id="year_level" name="year_level" value="<?php echo htmlspecialchars($year_level); ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="program">Program</label>
-                        <select id="program" name="program" class="<?php echo !empty($fieldErrors['program']) ? 'input-error' : ''; ?>" required>
+                        <select id="program" name="program" required>
                             <option value="">-- Select Program --</option>
                             <?php
                             $deptKey = normalize_department_key($department);
@@ -490,22 +432,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <option value="<?php echo htmlspecialchars($p); ?>" <?php echo $program === $p ? 'selected' : ''; ?>><?php echo htmlspecialchars($p); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <?php if (!empty($fieldErrors['program'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['program']); ?></div><?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="department">Department</label>
-                        <select id="department" name="department" class="<?php echo !empty($fieldErrors['department']) ? 'input-error' : ''; ?>" required>
+                        <select id="department" name="department" required>
                             <option value="">-- Select Department --</option>
                             <?php foreach ($DEPT_LABELS as $key => $label): ?>
                                 <option value="<?php echo htmlspecialchars($key); ?>" <?php echo $department === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <?php if (!empty($fieldErrors['department'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['department']); ?></div><?php endif; ?>
                     </div>
                     <div class="form-group">
                         <label for="email">Email</label>
-                        <input type="email" id="email" name="email" class="<?php echo !empty($fieldErrors['email']) ? 'input-error' : ''; ?>" value="<?php echo htmlspecialchars($email); ?>" required>
-                        <?php if (!empty($fieldErrors['email'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['email']); ?></div><?php endif; ?>
+                        <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
                     </div>
                     <div class="form-group">
                         <label for="phone">Phone (optional)</label>
@@ -513,14 +452,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" class="<?php echo !empty($fieldErrors['password']) ? 'input-error' : ''; ?>" required>
-                        <div class="field-hint">At least 8 characters, with uppercase, lowercase, number, and special character.</div>
-                        <?php if (!empty($fieldErrors['password'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['password']); ?></div><?php endif; ?>
+                        <input type="password" id="password" name="password" required>
                     </div>
                     <div class="form-group">
                         <label for="confirm_password">Confirm Password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="<?php echo !empty($fieldErrors['confirm_password']) ? 'input-error' : ''; ?>" required>
-                        <?php if (!empty($fieldErrors['confirm_password'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['confirm_password']); ?></div><?php endif; ?>
+                        <input type="password" id="confirm_password" name="confirm_password" required>
                     </div>
                     <button type="submit" class="btn-primary btn-full">Submit Registration</button>
                 </form>
