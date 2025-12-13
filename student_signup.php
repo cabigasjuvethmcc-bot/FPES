@@ -70,6 +70,8 @@ if (!empty($_SESSION['quick_eval_target'])) {
 
 $isQrContext = !empty($_SESSION['quick_eval_target']);
 
+$redirectAfterSignup = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = sanitizeInput($_POST['full_name'] ?? '');
     $student_id = sanitizeInput($_POST['student_id'] ?? '');
@@ -97,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $isQrSignup = !empty($_SESSION['quick_eval_target']);
+    $redirectAfterSignup = $isQrSignup ? $quickEvalRedirectUrl : '';
 
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
         $errors[] = 'Please fill in all required fields.';
@@ -251,13 +254,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h2 id="signup-title" class="login-title">Student Signup</h2>
             <hr class="divider" aria-hidden="true" />
             <?php if ($submitted && empty($errors)): ?>
-                <?php if ($isQrContext): ?>
+                <?php if ($redirectAfterSignup !== ''): ?>
                     <div class="success-message">Account created. Redirecting you to your evaluation...</div>
                     <div style="margin-top:0.75rem; font-size:0.95rem; text-align:center;">
-                        <a href="<?php echo htmlspecialchars($quickEvalRedirectUrl); ?>" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Continue</a>
+                        <a href="<?php echo htmlspecialchars($redirectAfterSignup); ?>" class="btn-primary" style="display:inline-block; text-decoration:none; padding:0.6rem 1.25rem;">Continue</a>
                     </div>
                     <script>
-                        setTimeout(function(){ window.location.href = <?php echo json_encode($quickEvalRedirectUrl, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>; }, 400);
+                        setTimeout(function(){ window.location.href = <?php echo json_encode($redirectAfterSignup, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>; }, 400);
                     </script>
                 <?php else: ?>
                     <div class="success-message">Your registration has been submitted and is awaiting admin approval.</div>
