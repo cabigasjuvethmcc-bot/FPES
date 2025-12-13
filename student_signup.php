@@ -121,6 +121,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        try {
+            $emailCheck = $pdo->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
+            $emailCheck->execute([$email, $email]);
+            $emailExists = $emailCheck->fetch();
+
+            $pendingEmailCheck = $pdo->prepare("SELECT id FROM pending_registrations WHERE email = ? AND status IN ('pending','approved') LIMIT 1");
+            $pendingEmailCheck->execute([$email]);
+            $pendingEmailExists = $pendingEmailCheck->fetch();
+
+            if ($emailExists || $pendingEmailExists) {
+                $errors[] = 'This Gmail/email is already in use. Please use another email or login instead.';
+            }
+
+            if ($student_id !== '') {
+                $usernameCheck = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+                $usernameCheck->execute([$student_id]);
+                $usernameExists = $usernameCheck->fetch();
+
+                $pendingUsernameCheck = $pdo->prepare("SELECT id FROM pending_registrations WHERE student_id = ? AND status IN ('pending','approved') LIMIT 1");
+                $pendingUsernameCheck->execute([$student_id]);
+                $pendingUsernameExists = $pendingUsernameCheck->fetch();
+
+                if ($usernameExists || $pendingUsernameExists) {
+                    $errors[] = 'This username/student ID is already taken. Please use another one.';
+                }
+            }
+        } catch (PDOException $e) {
+            $errors[] = 'Unable to validate username/email at the moment. Please try again.';
+        }
+    }
+
+    if (empty($errors)) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         try {
             if ($isQrSignup) {
