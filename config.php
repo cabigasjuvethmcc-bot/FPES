@@ -61,7 +61,7 @@ if (!class_exists('DbSessionHandler')) {
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                $data = $row ? (string)$row['data'] : '';
+                $data = $row ? $row['data'] : '';
                 
                 // Debug: log full session data being read
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
