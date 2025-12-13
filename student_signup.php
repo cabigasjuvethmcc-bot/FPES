@@ -259,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Password mismatch for existing user, redirecting to login\n", FILE_APPEND);
                     // Password mismatch: send the student to login so they can continue the QR evaluation
-                    $_SESSION['login_error'] = 'An account with this email already exists. Please login to continue.';
+                    $_SESSION['login_error'] = 'This email is already registered. The password you entered is incorrect. Please login with your correct password or reset it.';
                     $_SESSION['login_prefill_username'] = $email;
                     if (!headers_sent()) {
                         session_write_close();
@@ -346,7 +346,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } catch (PDOException $e) {
             error_log('STUDENT SIGNUP PDO ERROR: ' . $e->getMessage());
-            $errors[] = 'Unable to submit registration right now. Please try again later.';
+
+            $sqlState = (string)($e->getCode() ?? '');
+            $driverCode = isset($e->errorInfo[1]) ? (int)$e->errorInfo[1] : 0;
+            $driverMsg = isset($e->errorInfo[2]) ? (string)$e->errorInfo[2] : '';
+
+            // Friendly handling for common MySQL duplicate-entry errors
+            if ($sqlState === '23000' || $driverCode === 1062 || stripos($driverMsg, 'Duplicate entry') !== false) {
+                // If duplicate happens during QR signup, it usually means the email(username) already exists.
+                $fieldErrors['email'] = 'This email is already registered. Please login instead.';
+                $errors[] = 'Account already exists. Please login using your email and password.';
+            } else {
+                $errors[] = 'Registration failed. Please double-check your details and try again. If this continues, contact the administrator.';
+            }
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
