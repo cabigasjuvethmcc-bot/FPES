@@ -151,7 +151,7 @@ if ($action === 'login') {
                 'redirect' => $redirect
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Incorrect username/ID or password.']);
+            echo json_encode(['success' => false, 'message' => 'Invalid credentials']);
         }
     } catch (PDOException $e) {
         // Log the actual database error server-side for debugging (not shown to users)
