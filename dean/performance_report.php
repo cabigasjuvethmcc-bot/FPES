@@ -24,7 +24,7 @@ try {
                             SUM(CASE WHEN e.sentiment = 'neutral'  THEN 1 ELSE 0 END) AS neutral_count
                            FROM users u
                            JOIN faculty f ON u.id = f.user_id
-                           LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                           LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                            WHERE u.role = 'faculty' AND u.department = ?
                            GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position, e.subject
                            ORDER BY avg_rating DESC");
@@ -38,7 +38,7 @@ try {
                            FROM evaluations e
                            JOIN faculty f ON e.faculty_id = f.id
                            JOIN users u ON f.user_id = u.id
-                           WHERE e.status = 'submitted'
+                           WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                              AND e.comments IS NOT NULL
                              AND e.comments <> ''
                              AND (e.evaluator_role = 'student' OR e.student_id IS NOT NULL)
