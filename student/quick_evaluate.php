@@ -30,7 +30,13 @@ if (!isLoggedIn()) {
         'subject_code' => $subjectCode,
         'subject_name' => $subjectName,
     ];
-    header('Location: ../index.php');
+    $qs = http_build_query([
+        'faculty_id'   => $facultyId,
+        'subject_code' => $subjectCode,
+        'subject_name' => $subjectName,
+    ]);
+    $signupUrl = '../student_signup.php' . ($qs !== '' ? ('?' . $qs) : '');
+    header('Location: ' . $signupUrl);
     exit;
 }
 
