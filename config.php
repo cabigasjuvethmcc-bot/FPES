@@ -60,14 +60,8 @@ if (!class_exists('DbSessionHandler')) {
             try {
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
-                $stmt->bindColumn(1, $data, PDO::PARAM_LOB);
-                $stmt->fetch(PDO::FETCH_BOUND);
-                
-                // Convert LOB resource to string if needed
-                if (is_resource($data)) {
-                    $data = stream_get_contents($data);
-                }
-                $data = $data ? (string)$data : '';
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $data = $row ? $row['data'] : '';
                 
                 // Debug: log what's being read
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, length=" . strlen($data) . "\n", FILE_APPEND);
@@ -117,9 +111,10 @@ if (!class_exists('DbSessionHandler')) {
     }
 }
 
-// Create session table if needed
+// Drop and recreate session table with correct column type
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS app_sessions (
+    $pdo->exec("DROP TABLE IF EXISTS app_sessions");
+    $pdo->exec("CREATE TABLE app_sessions (
         id VARCHAR(128) NOT NULL PRIMARY KEY,
         data LONGTEXT NOT NULL,
         last_activity INT NOT NULL,
