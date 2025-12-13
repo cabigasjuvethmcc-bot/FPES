@@ -8,6 +8,11 @@ if (!empty($_SESSION['must_change_password'])) {
     exit();
 }
 
+if (hasRole('student') && !empty($_SESSION['quick_eval_target'])) {
+    header('Location: student/quick_evaluate.php');
+    exit();
+}
+
 // Redirect to appropriate dashboard based on role
 switch ($_SESSION['role']) {
     case 'student':
