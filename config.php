@@ -6,8 +6,6 @@ define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 define('DB_NAME', getenv('DB_NAME') !== false ? getenv('DB_NAME') : 'faculty_evaluation_system');
 define('DB_PORT', getenv('DB_PORT') !== false ? getenv('DB_PORT') : null);
 
-// Start session
-session_start();
 // Global timezone: Philippine Standard Time
 // Ensures all PHP DateTime/date() calls use Asia/Manila across the app
 date_default_timezone_set('Asia/Manila');
@@ -40,6 +38,101 @@ try {
     } catch (PDOException $e) { /* ignore create error; page-level logic may also ensure */ }
 } catch(PDOException $e) {
     die("Connection failed: " . $e->getMessage());
+}
+
+// ---------------- Database-backed Sessions ----------------
+// Render/hosting environments may run multiple instances or ephemeral filesystems.
+// Storing sessions in MySQL ensures login state persists reliably across redirects.
+if (!class_exists('DbSessionHandler')) {
+    class DbSessionHandler implements SessionHandlerInterface {
+        private PDO $pdo;
+        private string $table;
+
+        public function __construct(PDO $pdo, string $table = 'app_sessions') {
+            $this->pdo = $pdo;
+            $this->table = $table;
+        }
+
+        public function open($savePath, $sessionName): bool { return true; }
+        public function close(): bool { return true; }
+
+        public function read($id): string {
+            try {
+                $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
+                $stmt->execute([(string)$id]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                return $row ? (string)$row['data'] : '';
+            } catch (PDOException $e) {
+                return '';
+            }
+        }
+
+        public function write($id, $data): bool {
+            try {
+                $stmt = $this->pdo->prepare(
+                    "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
+                    "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
+                );
+                return $stmt->execute([(string)$id, (string)$data, time()]);
+            } catch (PDOException $e) {
+                return false;
+            }
+        }
+
+        public function destroy($id): bool {
+            try {
+                $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE id = ?");
+                return $stmt->execute([(string)$id]);
+            } catch (PDOException $e) {
+                return false;
+            }
+        }
+
+        public function gc($max_lifetime): int|false {
+            try {
+                $cutoff = time() - (int)$max_lifetime;
+                $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE last_activity < ?");
+                $stmt->execute([$cutoff]);
+                return $stmt->rowCount();
+            } catch (PDOException $e) {
+                return false;
+            }
+        }
+    }
+}
+
+// Create session table if needed
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS app_sessions (
+        id VARCHAR(128) NOT NULL PRIMARY KEY,
+        data MEDIUMBLOB NOT NULL,
+        last_activity INT NOT NULL,
+        INDEX idx_last_activity (last_activity)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+} catch (PDOException $e) {
+    // If table creation fails, PHP will fall back to file sessions once session_start runs.
+}
+
+// Register handler before starting session
+try {
+    $handler = new DbSessionHandler($pdo);
+    session_set_save_handler($handler, true);
+} catch (Throwable $e) {
+    // ignore; fall back to default handler
+}
+
+// Start session (after configuring handler + cookie params)
+if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
 }
 
 // ---------------- Semester/Academic Year Helpers ----------------
