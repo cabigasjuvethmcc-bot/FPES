@@ -3,6 +3,7 @@ require_once '../config.php';
 
 // Debug: log session state on arrival
 file_put_contents(__DIR__ . '/../signup_debug.log', "[" . date('Y-m-d H:i:s') . "] quick_evaluate.php arrived - session data: " . json_encode($_SESSION) . "\n", FILE_APPEND);
+file_put_contents(__DIR__ . '/../signup_debug.log', "[" . date('Y-m-d H:i:s') . "] quick_evaluate.php - isLoggedIn(): " . (isLoggedIn() ? 'YES' : 'NO') . "\n", FILE_APPEND);
 
 // Quick evaluation entry point for QR codes
 // Expected query params: faculty_id, subject_code (optional), subject_name (fallback)
