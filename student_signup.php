@@ -83,11 +83,6 @@ if (!empty($_SESSION['quick_eval_target']) && is_array($_SESSION['quick_eval_tar
     ];
 }
 
-// Ensure session carries the QR target if we have one (important for mobile browsers)
-if (empty($_SESSION['quick_eval_target']) && is_array($qrTarget) && !empty($qrTarget)) {
-    $_SESSION['quick_eval_target'] = $qrTarget;
-}
-
 $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($qrTarget);
 
 $isQrContext = (is_array($qrTarget) && !empty($qrTarget));
@@ -107,21 +102,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm_password = $_POST['confirm_password'] ?? '';
 
     // Restore QR target from form post if session isn't preserved
-    if (empty($_SESSION['quick_eval_target'])) {
+    $qrCandidate = null;
+    if (!empty($_SESSION['quick_eval_target']) && is_array($_SESSION['quick_eval_target'])) {
+        $qrCandidate = $_SESSION['quick_eval_target'];
+    } else {
         $pFacultyId = (int)($_POST['qr_faculty_id'] ?? 0);
         $pSubjectCode = trim((string)($_POST['qr_subject_code'] ?? ''));
         $pSubjectName = trim((string)($_POST['qr_subject_name'] ?? ''));
         if ($pFacultyId > 0 && ($pSubjectCode !== '' || $pSubjectName !== '')) {
-            $_SESSION['quick_eval_target'] = [
+            $qrCandidate = [
                 'faculty_id'   => $pFacultyId,
                 'subject_code' => $pSubjectCode,
                 'subject_name' => $pSubjectName,
             ];
+        } elseif ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
+            $qrCandidate = [
+                'faculty_id'   => $qrFacultyId,
+                'subject_code' => $qrSubjectCode,
+                'subject_name' => $qrSubjectName,
+            ];
         }
     }
 
-    $isQrSignup = !empty($_SESSION['quick_eval_target']);
-    $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
+    if (is_array($qrCandidate) && !empty($qrCandidate)) {
+        $_SESSION['quick_eval_target'] = $qrCandidate;
+    }
+
+    $isQrSignup = (is_array($qrCandidate) && !empty($qrCandidate));
+    $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($qrCandidate);
     $redirectAfterSignup = $isQrSignup ? ($quickEvalRedirectUrl !== '' ? $quickEvalRedirectUrl : 'student/quick_evaluate.php') : '';
 
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
@@ -211,6 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['student_id'] = isset($u['student_id']) ? (int)$u['student_id'] : 0;
 
                         if (!headers_sent()) {
+                            session_write_close();
                             header('Location: ' . $quickEvalRedirectUrl);
                             exit;
                         }
@@ -219,6 +228,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['login_error'] = 'An account with this email already exists. Please login to continue.';
                     $_SESSION['login_prefill_username'] = $email;
                     if (!headers_sent()) {
+                        session_write_close();
                         header('Location: index.php');
                         exit;
                     }
@@ -277,6 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($finalRedirect === '') {
                         $finalRedirect = 'student/quick_evaluate.php';
                     }
+                    session_write_close();
                     header('Location: ' . $finalRedirect);
                     exit;
                 }
