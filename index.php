@@ -7,6 +7,12 @@ unset($_SESSION['login_error'], $_SESSION['login_prefill_username']);
 
 // If user is already logged in, redirect to dashboard
 if (isLoggedIn()) {
+    // If a student scanned a quick evaluation QR before reaching login/signup,
+    // continue directly to the evaluation flow.
+    if (hasRole('student') && !empty($_SESSION['quick_eval_target'])) {
+        header('Location: student/quick_evaluate.php');
+        exit();
+    }
     header('Location: dashboard.php');
     exit();
 }
