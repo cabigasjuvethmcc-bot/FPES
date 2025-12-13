@@ -120,8 +120,13 @@ try {
         last_activity INT NOT NULL,
         INDEX idx_last_activity (last_activity)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    
+    // Verify table structure
+    $result = $pdo->query("DESCRIBE app_sessions");
+    $columns = $result->fetchAll(PDO::FETCH_ASSOC);
+    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] TABLE STRUCTURE: " . json_encode($columns) . "\n", FILE_APPEND);
 } catch (PDOException $e) {
-    // If table creation fails, PHP will fall back to file sessions once session_start runs.
+    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] TABLE CREATION ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
 }
 
 // Register handler before starting session
