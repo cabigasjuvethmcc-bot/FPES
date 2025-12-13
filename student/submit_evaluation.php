@@ -82,11 +82,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // QR-created student accounts may exist but still require admin approval.
         $is_counted = 1;
         try {
-            $stmt = $pdo->prepare("SELECT COALESCE(account_status,'active') AS account_status FROM users WHERE id = ? LIMIT 1");
+            $stmt = $pdo->prepare("SELECT COALESCE(u.account_status,'active') AS account_status,
+                                          COALESCE(s.student_id,'') AS student_no
+                                     FROM users u
+                                     LEFT JOIN students s ON s.user_id = u.id
+                                    WHERE u.id = ?
+                                    LIMIT 1");
             $stmt->execute([$_SESSION['user_id']]);
             $urow = $stmt->fetch();
-            if ($urow && ($urow['account_status'] ?? 'active') === 'pending') {
-                $is_counted = 0;
+            if ($urow) {
+                if (($urow['account_status'] ?? 'active') !== 'active') {
+                    $is_counted = 0;
+                }
+                if (trim((string)($urow['student_no'] ?? '')) === '') {
+                    $is_counted = 0;
+                }
             }
         } catch (PDOException $e) {
             // ignore and default to counted
