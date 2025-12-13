@@ -60,8 +60,9 @@ if (!class_exists('DbSessionHandler')) {
             try {
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                $data = $row ? $row['data'] : '';
+                $stmt->bindColumn(1, $data, PDO::PARAM_LOB);
+                $stmt->fetch(PDO::FETCH_BOUND);
+                $data = $data ? $data : '';
                 
                 // Debug: log full session data being read
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
