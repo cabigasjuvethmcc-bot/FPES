@@ -102,7 +102,9 @@ h1, h2 { color: var(--dark-color); margin-bottom: 1rem; font-weight: 600; }
 .btn-outline:hover { background: rgba(16,185,129,.08); box-shadow: 0 4px 12px rgba(102, 109, 3, 0.25); transform: translateY(-1px); }
 .btn-outline:focus { outline: none; box-shadow: 0 0 0 3px rgba(102, 109, 3, 0.25); }
 .btn-small { padding: .45rem .75rem; border-radius: 9px; font-size: .92rem; }
-.error-message { color: var(--danger-color); margin-bottom: 1rem; padding: 0.75rem; background-color: rgba(231, 76, 60, 0.08); border-radius: 10px; display: none; font-size: 0.9rem; }
+.error-message { color: var(--danger-color); margin-bottom: 1rem; padding: 0.75rem; background-color: rgba(231, 76, 60, 0.08); border-radius: 10px; display: block; font-size: 0.9rem; }
+.error-message:empty { display: none; }
+.login-form .error-message { display: none; }
 
 /* Dashboard Sidebar */
 .dashboard { display: flex; min-height: 100vh; }
