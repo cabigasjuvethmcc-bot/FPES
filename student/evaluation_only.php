@@ -176,6 +176,8 @@ unset($_SESSION['quick_eval']);
             font-weight: 500;
             cursor: pointer;
             transition: background 0.2s;
+            position: relative;
+            z-index: 5;
         }
         .submit-btn:hover {
             background: #2563eb;
@@ -275,5 +277,24 @@ unset($_SESSION['quick_eval']);
 
         <a href="student.php" class="back-link">← Back to Dashboard</a>
     </div>
+
+    <script>
+        (function () {
+            var form = document.querySelector('form');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    if (typeof form.reportValidity === 'function') {
+                        form.reportValidity();
+                    }
+                    var firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid && typeof firstInvalid.scrollIntoView === 'function') {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
