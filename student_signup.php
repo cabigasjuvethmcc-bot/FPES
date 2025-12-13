@@ -207,8 +207,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // ignore if already nullable
                 }
 
-                $pdo->beginTransaction();
-
                 // Use email as temporary username until admin assigns the real student_id
                 $username = $email;
                 $check = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
@@ -253,6 +251,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     throw new Exception('An account with this email already exists. Please login instead.');
                 }
+
+                $pdo->beginTransaction();
 
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Creating new user with email as username: $username\n", FILE_APPEND);
                 $insUser = $pdo->prepare("INSERT INTO users (username, password, role, full_name, email, department, account_status) VALUES (?, ?, 'student', ?, ?, ?, 'pending')");
