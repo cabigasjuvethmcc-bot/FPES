@@ -116,6 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (PDOException $e) {
             // Ignore if columns already exist or if server doesn't support IF NOT EXISTS (older MySQL)
         }
+
+        // Ensure status supports 'pending' on older schemas
+        try {
+            $pdo->exec("ALTER TABLE evaluations MODIFY status ENUM('pending','draft','submitted','reviewed') NOT NULL DEFAULT 'draft'");
+        } catch (PDOException $e) {
+            // ignore (might already be compatible or privileges limited)
+        }
         // Ensure evaluations table supports is_counted flag
         try {
             $pdo->exec("ALTER TABLE evaluations ADD COLUMN is_counted TINYINT(1) NOT NULL DEFAULT 1");
