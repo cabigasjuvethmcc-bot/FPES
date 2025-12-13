@@ -65,6 +65,26 @@ function buildQuickEvalRedirectUrl($target) {
     return $url;
 }
 
+function validatePasswordRequirements($password) {
+    $issues = [];
+    if (strlen((string)$password) < 8) {
+        $issues[] = 'at least 8 characters';
+    }
+    if (!preg_match('/[a-z]/', (string)$password)) {
+        $issues[] = 'one lowercase letter';
+    }
+    if (!preg_match('/[A-Z]/', (string)$password)) {
+        $issues[] = 'one uppercase letter';
+    }
+    if (!preg_match('/\d/', (string)$password)) {
+        $issues[] = 'one number';
+    }
+    if (!preg_match('/[^A-Za-z0-9]/', (string)$password)) {
+        $issues[] = 'one special character';
+    }
+    return $issues;
+}
+
 if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
     $_SESSION['quick_eval_target'] = [
         'faculty_id'   => $qrFacultyId,
@@ -157,8 +177,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($password === '') {
         $fieldErrors['password'] = 'Password is required.';
-    } elseif (strlen($password) < 8) {
-        $fieldErrors['password'] = 'Password must be at least 8 characters.';
+    } else {
+        $pwIssues = validatePasswordRequirements($password);
+        if (!empty($pwIssues)) {
+            $fieldErrors['password'] = 'Password must contain ' . implode(', ', $pwIssues) . '.';
+        }
     }
     if ($confirm_password === '') {
         $fieldErrors['confirm_password'] = 'Please confirm your password.';
@@ -491,7 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="form-group">
                         <label for="password">Password</label>
                         <input type="password" id="password" name="password" class="<?php echo !empty($fieldErrors['password']) ? 'input-error' : ''; ?>" required>
-                        <div class="field-hint">At least 8 characters.</div>
+                        <div class="field-hint">At least 8 characters, with uppercase, lowercase, number, and special character.</div>
                         <?php if (!empty($fieldErrors['password'])): ?><div class="field-error"><?php echo htmlspecialchars($fieldErrors['password']); ?></div><?php endif; ?>
                     </div>
                     <div class="form-group">
