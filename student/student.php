@@ -2,6 +2,11 @@
 require_once '../config.php';
 requireRole('student');
 
+if (!empty($_SESSION['quick_eval_target']) && is_array($_SESSION['quick_eval_target'])) {
+    header('Location: quick_evaluate.php');
+    exit;
+}
+
 // Check if we should show evaluation directly (from QR flow)
 $showEvaluationDirectly = isset($_GET['view']) && $_GET['view'] === 'evaluation';
 
@@ -86,6 +91,17 @@ if ($quickEval && !empty($quickEval['faculty_id'])) {
     $quickEval['subject_code'] = isset($quickEval['subject_code']) ? trim((string)$quickEval['subject_code']) : '';
     $quickEval['subject_name'] = isset($quickEval['subject_name']) ? trim((string)$quickEval['subject_name']) : '';
 }
+
+$quickEvalFacultyName = '';
+if ($quickEval && !empty($quickEval['faculty_id'])) {
+    try {
+        $fnStmt = $pdo->prepare("SELECT u.full_name FROM faculty f JOIN users u ON u.id = f.user_id WHERE f.id = ? LIMIT 1");
+        $fnStmt->execute([(int)$quickEval['faculty_id']]);
+        $quickEvalFacultyName = (string)($fnStmt->fetchColumn() ?: '');
+    } catch (PDOException $e) {
+        $quickEvalFacultyName = '';
+    }
+}
 // Use-once: clear after page load
 unset($_SESSION['quick_eval']);
 ?>
@@ -145,7 +161,14 @@ unset($_SESSION['quick_eval']);
                                 <label>Subject &amp; Faculty:</label>
                                 <div style="padding:0.75rem 1rem; background:#f9fafb; border-radius:8px; border:1px solid #e5e7eb;">
                                     <strong><?php echo htmlspecialchars(($quickEval['subject_code'] ? $quickEval['subject_code'] . ' - ' : '') . ($quickEval['subject_name'] ?: 'Subject')); ?></strong><br>
-                                    <small>Faculty ID: <?php echo (int)$quickEval['faculty_id']; ?> (via QR)</small>
+                                    <small>
+                                        <?php
+                                            $label = $quickEvalFacultyName !== ''
+                                                ? ('Faculty: ' . $quickEvalFacultyName . ' (ID: ' . (int)$quickEval['faculty_id'] . ')')
+                                                : ('Faculty ID: ' . (int)$quickEval['faculty_id']);
+                                            echo htmlspecialchars($label);
+                                        ?> (via QR)
+                                    </small>
                                 </div>
                                 <input type="hidden" id="faculty_id" name="faculty_id" value="<?php echo (int)$quickEval['faculty_id']; ?>">
                                 <input type="hidden" id="subject" name="subject" value="<?php echo htmlspecialchars($quickEval['subject_name'] ?: $quickEval['subject_code']); ?>">
