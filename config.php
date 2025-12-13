@@ -69,20 +69,28 @@ if (!class_exists('DbSessionHandler')) {
                 }
                 $data = $data ? (string)$data : '';
                 
+                // Debug: log what's being read
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, length=" . strlen($data) . "\n", FILE_APPEND);
+                
                 return $data;
             } catch (PDOException $e) {
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return '';
             }
         }
 
         public function write($id, $data): bool {
             try {
+                // Debug: log what's being written
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, length=" . strlen($data) . "\n", FILE_APPEND);
+                
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
                 return $stmt->execute([(string)$id, $data, time()]);
             } catch (PDOException $e) {
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return false;
             }
         }
