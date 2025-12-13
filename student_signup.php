@@ -42,6 +42,19 @@ $department = '';
 $email = '';
 $phone = '';
 
+// Restore QR target from query string if present (helps when session isn't preserved)
+$qrFacultyId = isset($_GET['faculty_id']) ? (int)$_GET['faculty_id'] : 0;
+$qrSubjectCode = isset($_GET['subject_code']) ? trim((string)($_GET['subject_code'] ?? '')) : '';
+$qrSubjectName = isset($_GET['subject_name']) ? trim((string)($_GET['subject_name'] ?? '')) : '';
+
+if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
+    $_SESSION['quick_eval_target'] = [
+        'faculty_id'   => $qrFacultyId,
+        'subject_code' => $qrSubjectCode,
+        'subject_name' => $qrSubjectName,
+    ];
+}
+
 $isQrContext = !empty($_SESSION['quick_eval_target']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -55,6 +68,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = sanitizeInput($_POST['phone'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+
+    // Restore QR target from form post if session isn't preserved
+    if (empty($_SESSION['quick_eval_target'])) {
+        $pFacultyId = (int)($_POST['qr_faculty_id'] ?? 0);
+        $pSubjectCode = trim((string)($_POST['qr_subject_code'] ?? ''));
+        $pSubjectName = trim((string)($_POST['qr_subject_name'] ?? ''));
+        if ($pFacultyId > 0 && ($pSubjectCode !== '' || $pSubjectName !== '')) {
+            $_SESSION['quick_eval_target'] = [
+                'faculty_id'   => $pFacultyId,
+                'subject_code' => $pSubjectCode,
+                'subject_name' => $pSubjectName,
+            ];
+        }
+    }
 
     $isQrSignup = !empty($_SESSION['quick_eval_target']);
 
@@ -237,6 +264,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 <?php endif; ?>
                 <form method="post">
+                    <?php if (!empty($_SESSION['quick_eval_target'])): ?>
+                        <input type="hidden" name="qr_faculty_id" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['faculty_id'] ?? '')); ?>">
+                        <input type="hidden" name="qr_subject_code" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['subject_code'] ?? '')); ?>">
+                        <input type="hidden" name="qr_subject_name" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['subject_name'] ?? '')); ?>">
+                    <?php endif; ?>
                     <div class="form-group">
                         <label for="full_name">Full Name</label>
                         <input type="text" id="full_name" name="full_name" value="<?php echo htmlspecialchars($full_name); ?>" required>
