@@ -47,6 +47,22 @@ $qrFacultyId = isset($_GET['faculty_id']) ? (int)$_GET['faculty_id'] : 0;
 $qrSubjectCode = isset($_GET['subject_code']) ? trim((string)($_GET['subject_code'] ?? '')) : '';
 $qrSubjectName = isset($_GET['subject_name']) ? trim((string)($_GET['subject_name'] ?? '')) : '';
 
+function buildQuickEvalRedirectUrl($target) {
+    $url = 'student/quick_evaluate.php';
+    if (!is_array($target) || empty($target)) {
+        return $url;
+    }
+    $qs = http_build_query([
+        'faculty_id' => (int)($target['faculty_id'] ?? 0),
+        'subject_code' => (string)($target['subject_code'] ?? ''),
+        'subject_name' => (string)($target['subject_name'] ?? ''),
+    ]);
+    if ($qs !== '') {
+        $url .= '?' . $qs;
+    }
+    return $url;
+}
+
 if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
     $_SESSION['quick_eval_target'] = [
         'faculty_id'   => $qrFacultyId,
@@ -55,18 +71,7 @@ if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
     ];
 }
 
-$quickEvalRedirectUrl = 'student/quick_evaluate.php';
-if (!empty($_SESSION['quick_eval_target'])) {
-    $t = $_SESSION['quick_eval_target'];
-    $qs = http_build_query([
-        'faculty_id' => (int)($t['faculty_id'] ?? 0),
-        'subject_code' => (string)($t['subject_code'] ?? ''),
-        'subject_name' => (string)($t['subject_name'] ?? ''),
-    ]);
-    if ($qs !== '') {
-        $quickEvalRedirectUrl .= '?' . $qs;
-    }
-}
+$quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
 
 $isQrContext = !empty($_SESSION['quick_eval_target']);
 
@@ -99,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $isQrSignup = !empty($_SESSION['quick_eval_target']);
+    $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
     $redirectAfterSignup = $isQrSignup ? $quickEvalRedirectUrl : '';
 
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
@@ -212,7 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!headers_sent()) {
-                    header('Location: ' . $quickEvalRedirectUrl);
+                    header('Location: ' . $redirectAfterSignup);
                     exit;
                 }
 
