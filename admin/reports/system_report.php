@@ -14,10 +14,10 @@ try {
                             (SELECT COUNT(*) FROM users WHERE role = 'faculty') as faculty_count,
                             (SELECT COUNT(*) FROM users WHERE role = 'dean') as dean_count,
                             (SELECT COUNT(*) FROM users WHERE role = 'admin') as admin_count,
-                            (SELECT COUNT(*) FROM evaluations WHERE COALESCE(is_counted,1) = 1) as total_evaluations,
+                            (SELECT COUNT(*) FROM evaluations WHERE status = 'submitted' AND COALESCE(is_counted,1) = 1) as total_evaluations,
                             (SELECT COUNT(*) FROM evaluation_criteria WHERE is_active = 1) as active_criteria,
                             (SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as new_users_30_days,
-                            (SELECT COUNT(*) FROM evaluations WHERE COALESCE(is_counted,1) = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as new_evaluations_30_days");
+                            (SELECT COUNT(*) FROM evaluations WHERE status = 'submitted' AND COALESCE(is_counted,1) = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) as new_evaluations_30_days");
     $stmt->execute();
     $stats = $stmt->fetch();
 
@@ -41,7 +41,7 @@ try {
                                   CONCAT('Evaluation ID: ', id) as description, 
                                   created_at
                            FROM evaluations 
-                           WHERE COALESCE(is_counted,1) = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                           WHERE status = 'submitted' AND COALESCE(is_counted,1) = 1 AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                            ORDER BY created_at DESC 
                            LIMIT 20");
     $stmt->execute();
