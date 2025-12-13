@@ -48,12 +48,12 @@ if (isLoggedIn()) {
       </div>
       <h2 id="login-title" class="login-title">Login</h2>
       <hr class="divider" aria-hidden="true" />
-      <div id="login-error" class="error-message"></div>
+      <div id="login-error" class="error-message"<?php echo $loginError !== '' ? ' style="display: block;"' : ''; ?>><?php echo htmlspecialchars($loginError); ?></div>
 
       <form id="login-form">
         <div class="form-group">
           <label for="username">Username/ID</label>
-          <input type="text" id="username" name="username" placeholder="Enter your username or ID" autocomplete="username" required>
+          <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($loginPrefillUsername); ?>" placeholder="Enter your username or ID" autocomplete="username" required>
         </div>
 
         <div class="form-group">
