@@ -21,6 +21,38 @@ try {
     // If creation fails, the join below may error; we proceed and let error bubble if so
 }
 
+try {
+    $pdo->exec("ALTER TABLE evaluations ADD COLUMN is_counted TINYINT(1) NOT NULL DEFAULT 1");
+} catch (PDOException $e) {
+    // ignore
+}
+
+$pending_reg_count = 0;
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        role ENUM('student') NOT NULL DEFAULT 'student',
+        full_name VARCHAR(100) NOT NULL,
+        student_id VARCHAR(20) NULL,
+        gender ENUM('Male','Female') NULL,
+        year_level VARCHAR(20) NOT NULL,
+        program VARCHAR(100) NOT NULL,
+        department VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        phone VARCHAR(30) NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $stmt = $pdo->prepare("SELECT COUNT(*) AS c FROM pending_registrations WHERE role = 'student' AND status = 'pending'");
+    $stmt->execute();
+    $row = $stmt->fetch();
+    $pending_reg_count = (int)($row['c'] ?? 0);
+} catch (PDOException $e) {
+    $pending_reg_count = 0;
+}
+
 // Get all users with their role-specific information (includes dean employee IDs)
 $stmt = $pdo->prepare("SELECT 
                         u.id, u.username, u.full_name, u.email, u.department, u.role, u.created_at,
@@ -41,7 +73,7 @@ $stmt = $pdo->prepare("SELECT
                         (SELECT COUNT(*) FROM users WHERE role = 'faculty') as faculty_count,
                         (SELECT COUNT(*) FROM users WHERE role = 'dean') as dean_count,
                         (SELECT COUNT(*) FROM users WHERE role = 'admin') as admin_count,
-                        (SELECT COUNT(*) FROM evaluations WHERE status = 'submitted') as total_evaluations,
+                        (SELECT COUNT(*) FROM evaluations WHERE status = 'submitted' AND COALESCE(is_counted,1) = 1) as total_evaluations,
                         (SELECT COUNT(*) FROM evaluation_criteria WHERE is_active = 1) as active_criteria");
 $stmt->execute();
 $system_stats = $stmt->fetch();
@@ -287,6 +319,19 @@ $adminDisplayName = $isSystemAdmin ? 'Admin' : ($admin['full_name'] ?? 'Admin');
             background: var(--danger-color);
             color: white;
         }
+
+        .badge {
+            display: inline-block;
+            min-width: 18px;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            margin-left: 8px;
+            background: var(--danger-color);
+            color: white;
+            text-align: center;
+        }
     </style>
 </head>
   <body>
@@ -296,7 +341,7 @@ $adminDisplayName = $isSystemAdmin ? 'Admin' : ($admin['full_name'] ?? 'Admin');
               <h2>Admin Portal</h2>
               <a href="#overview"><i class="fas fa-gauge-high"></i> System Overview</a>
               <a href="#users"><i class="fas fa-users"></i> User Management</a>
-              <a href="#pending_registrations"><i class="fas fa-user-clock"></i> Pending Student Registrations</a>
+              <a href="#pending_registrations"><i class="fas fa-user-clock"></i> Pending Student Registrations<?php if ($pending_reg_count > 0): ?> <span class="badge" id="pending-reg-badge"><?php echo (int)$pending_reg_count; ?></span><?php else: ?> <span class="badge" id="pending-reg-badge" style="display:none;">0</span><?php endif; ?></a>
               <a href="manage_faculty.php"><i class="fas fa-chalkboard-teacher"></i> Manage Faculty</a>
               <a href="#bulk_upload"><i class="fas fa-file-upload"></i> Bulk Upload</a>
               <a href="#criteria"><i class="fas fa-list-check"></i> Evaluation Criteria</a>
@@ -1132,6 +1177,12 @@ $adminDisplayName = $isSystemAdmin ? 'Admin' : ($admin['full_name'] ?? 'Admin');
                 fd.append('action', 'list_pending_registrations');
                 const res = await fetch('manage_users.php', { method: 'POST', body: fd });
                 const data = await res.json();
+                const badge = document.getElementById('pending-reg-badge');
+                if (badge) {
+                    const count = (data && data.success && Array.isArray(data.data)) ? data.data.length : 0;
+                    badge.textContent = String(count);
+                    badge.style.display = count > 0 ? 'inline-block' : 'none';
+                }
                 if (!data.success || !Array.isArray(data.data)) {
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
