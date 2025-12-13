@@ -91,7 +91,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $username = $email;
                 $check = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
                 $check->execute([$username]);
-                if ($check->fetch()) {
+                $existing = $check->fetch();
+                if ($existing) {
+                    // If the student already has a QR-created pending account, allow them to continue
+                    // by logging them in (only if the password matches).
+                    $uStmt = $pdo->prepare("SELECT u.id, u.username, u.password, u.role, u.full_name, u.department, s.id AS student_id
+                                            FROM users u
+                                            LEFT JOIN students s ON s.user_id = u.id
+                                            WHERE u.id = ? AND u.role = 'student'
+                                            LIMIT 1");
+                    $uStmt->execute([(int)$existing['id']]);
+                    $u = $uStmt->fetch();
+                    if ($u && password_verify($password, (string)$u['password'])) {
+                        $_SESSION['user_id'] = (int)$u['id'];
+                        $_SESSION['username'] = $u['username'];
+                        $_SESSION['role'] = $u['role'];
+                        $_SESSION['full_name'] = $u['full_name'];
+                        $_SESSION['department'] = $u['department'];
+                        $_SESSION['student_id'] = isset($u['student_id']) ? (int)$u['student_id'] : 0;
+
+                        if (!headers_sent()) {
+                            header('Location: student/quick_evaluate.php');
+                            exit;
+                        }
+                    }
                     throw new Exception('An account with this email already exists. Please login instead.');
                 }
 
