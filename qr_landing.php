@@ -41,7 +41,7 @@ if (isLoggedIn()) {
             <p style="margin-bottom:1rem; text-align:center;">To continue with this evaluation, please login or sign up as a student.</p>
             <div style="display:flex; flex-direction:column; gap:0.75rem; width:100%; max-width:320px; margin:0 auto;">
                 <a href="index.php" class="btn-primary" style="text-align:center;">Login</a>
-                <a href="student_signup.php" class="btn-secondary" style="text-align:center;">Sign up as Student</a>
+                <a href="student_signup.php?faculty_id=<?php echo urlencode((string)$facultyId); ?>&subject_code=<?php echo urlencode((string)$subjectCode); ?>&subject_name=<?php echo urlencode((string)$subjectName); ?>" class="btn-secondary" style="text-align:center;">Sign up as Student</a>
             </div>
         </div>
     </div>
