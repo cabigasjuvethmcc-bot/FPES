@@ -200,6 +200,7 @@
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+  display: block;
 }
 
 .error-message {
@@ -208,6 +209,7 @@
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+  display: block;
 }
 
 /* Responsive adjustments */
