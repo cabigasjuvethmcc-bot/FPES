@@ -77,6 +77,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetch()) {
             throw new Exception('You have already evaluated this faculty for this subject and semester');
         }
+
+        // Determine whether this evaluation should be counted immediately.
+        // QR-created student accounts may exist but still require admin approval.
+        $is_counted = 1;
+        try {
+            $stmt = $pdo->prepare("SELECT COALESCE(account_status,'active') AS account_status FROM users WHERE id = ? LIMIT 1");
+            $stmt->execute([$_SESSION['user_id']]);
+            $urow = $stmt->fetch();
+            if ($urow && ($urow['account_status'] ?? 'active') === 'pending') {
+                $is_counted = 0;
+            }
+        } catch (PDOException $e) {
+            // ignore and default to counted
+        }
         
         // Ensure evaluations table has evaluator metadata and supports NULL student_id
         try {
@@ -87,6 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ADD COLUMN IF NOT EXISTS sentiment ENUM('positive','negative','neutral') NULL");
         } catch (PDOException $e) {
             // Ignore if columns already exist or if server doesn't support IF NOT EXISTS (older MySQL)
+        }
+        // Ensure evaluations table supports is_counted flag
+        try {
+            $pdo->exec("ALTER TABLE evaluations ADD COLUMN is_counted TINYINT(1) NOT NULL DEFAULT 1");
+        } catch (PDOException $e) {
+            // ignore if already exists
         }
         try {
             $pdo->exec("ALTER TABLE evaluations MODIFY student_id INT NULL");
@@ -121,13 +141,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Try inserting with evaluator fields if available; fallback to legacy columns if not
         $inserted = false;
         try {
-            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted', NOW())");
-            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id'], 'student']);
+            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, sentiment, is_anonymous, evaluator_user_id, evaluator_role, is_self, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted', NOW(), ?)");
+            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $sentiment, $is_anonymous, $_SESSION['user_id'], 'student', $is_counted]);
             $inserted = true;
         } catch (PDOException $e) {
             // Fallback to legacy insert if evaluator columns are not present
-            $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())");
-            $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous]);
+            try {
+                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at, is_counted) VALUES (?, ?, ?, ?, ?, ?, ?, 'submitted', NOW(), ?)");
+                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous, $is_counted]);
+            } catch (PDOException $e2) {
+                $stmt = $pdo->prepare("INSERT INTO evaluations (student_id, faculty_id, semester, academic_year, subject, comments, is_anonymous, status, submitted_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'submitted', NOW())");
+                $stmt->execute([$_SESSION['student_id'], $faculty_id, $semester, $academic_year, $subject, $overall_comments, $is_anonymous]);
+            }
         }
         
         $evaluation_id = $pdo->lastInsertId();
