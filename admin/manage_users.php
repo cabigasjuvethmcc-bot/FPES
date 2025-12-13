@@ -839,6 +839,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
+            // Ensure user_id exists on older deployments where the table pre-exists
+            try {
+                $pdo->exec("ALTER TABLE pending_registrations ADD COLUMN user_id INT NULL AFTER id");
+            } catch (PDOException $e2) {
+                // ignore if already exists
+            }
+
             $stmt = $pdo->prepare("SELECT id, full_name, student_id, gender, year_level, program, department, email, phone, status, created_at
                                    FROM pending_registrations
                                    WHERE role = 'student' AND status = 'pending'
@@ -875,6 +882,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
                 role ENUM('student') NOT NULL DEFAULT 'student',
                 full_name VARCHAR(100) NOT NULL,
                 student_id VARCHAR(20) NULL,
@@ -888,6 +896,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+            // Ensure user_id exists on older deployments where the table pre-exists
+            try {
+                $pdo->exec("ALTER TABLE pending_registrations ADD COLUMN user_id INT NULL AFTER id");
+            } catch (PDOException $e2) {
+                // ignore if already exists
+            }
 
             $stmt = $pdo->prepare("SELECT * FROM pending_registrations WHERE id = ? AND role = 'student' AND status = 'pending' LIMIT 1");
             $stmt->execute([$pending_id]);
@@ -1011,6 +1026,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+            // Ensure user_id exists on older deployments where the table pre-exists
+            try {
+                $pdo->exec("ALTER TABLE pending_registrations ADD COLUMN user_id INT NULL AFTER id");
+            } catch (PDOException $e2) {
+                // ignore if already exists
+            }
 
             $stmt = $pdo->prepare("UPDATE pending_registrations SET status = 'rejected' WHERE id = ? AND status = 'pending'");
             $stmt->execute([$pending_id]);
