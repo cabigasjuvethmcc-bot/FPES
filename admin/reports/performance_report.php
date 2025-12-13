@@ -19,7 +19,7 @@ try {
                             SUM(CASE WHEN e.sentiment = 'neutral'  THEN 1 ELSE 0 END) AS neutral_count
                            FROM users u
                            JOIN faculty f ON u.id = f.user_id
-                           LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted'
+                           LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                            WHERE u.role = 'faculty'
                            GROUP BY u.id, u.full_name, u.department, f.id, f.employee_id, f.position, e.subject
                            ORDER BY u.department, u.full_name, e.subject");
@@ -34,7 +34,7 @@ try {
                            FROM users u
                            JOIN faculty f ON u.id = f.user_id
                            JOIN evaluations e ON f.id = e.faculty_id
-                           WHERE u.role = 'faculty' AND e.status = 'submitted'
+                           WHERE u.role = 'faculty' AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                            GROUP BY u.id, u.full_name, u.department
                            HAVING COUNT(e.id) >= 3
                            ORDER BY avg_rating DESC
@@ -52,7 +52,7 @@ try {
                            FROM evaluations e
                            JOIN faculty f ON e.faculty_id = f.id
                            JOIN users u ON f.user_id = u.id
-                            WHERE e.status = 'submitted' AND e.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                            WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND e.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
                             GROUP BY u.department, f.id, DATE_FORMAT(e.created_at, '%Y-%m')
                             ORDER BY u.department, month DESC");
     $stmt->execute();
@@ -63,7 +63,7 @@ try {
                              e.faculty_id,
                              GROUP_CONCAT(TRIM(e.comments) SEPARATOR '\n\n') AS comments
                            FROM evaluations e
-                           WHERE e.status = 'submitted'
+                           WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                              AND e.comments IS NOT NULL
                              AND e.comments <> ''
                              AND (e.evaluator_role = 'student' OR e.student_id IS NOT NULL)
