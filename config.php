@@ -19,6 +19,7 @@ try {
     $pdo = new PDO($dsn, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     // Align MySQL session time zone with PHP (Asia/Manila is UTC+08:00)
     // This ensures NOW(), CURRENT_TIMESTAMP, and TIMESTAMP columns reflect Philippine time
     try { $pdo->exec("SET time_zone = '+08:00'"); } catch (PDOException $e) { /* ignore if not permitted */ }
@@ -60,8 +61,14 @@ if (!class_exists('DbSessionHandler')) {
             try {
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                $data = $row ? $row['data'] : '';
+                $data = $stmt->fetchColumn();
+                if ($data === false || $data === null) {
+                    $data = '';
+                }
+                if (is_resource($data)) {
+                    $data = stream_get_contents($data);
+                }
+                $data = (string)$data;
                 
                 // Debug: log what's being read
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, length=" . strlen($data) . "\n", FILE_APPEND);
@@ -82,7 +89,12 @@ if (!class_exists('DbSessionHandler')) {
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
-                return $stmt->execute([(string)$id, $data, time()]);
+                $sid = (string)$id;
+                $now = time();
+                $stmt->bindParam(1, $sid, PDO::PARAM_STR);
+                $stmt->bindParam(2, $data, PDO::PARAM_LOB);
+                $stmt->bindParam(3, $now, PDO::PARAM_INT);
+                return $stmt->execute();
             } catch (PDOException $e) {
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return false;
@@ -111,22 +123,18 @@ if (!class_exists('DbSessionHandler')) {
     }
 }
 
-// Drop and recreate session table with correct column type
+// Ensure session table exists (do NOT drop; that would wipe sessions)
 try {
-    $pdo->exec("DROP TABLE IF EXISTS app_sessions");
-    $pdo->exec("CREATE TABLE app_sessions (
+    $pdo->exec("CREATE TABLE IF NOT EXISTS app_sessions (
         id VARCHAR(128) NOT NULL PRIMARY KEY,
-        data LONGTEXT NOT NULL,
+        data LONGBLOB NOT NULL,
         last_activity INT NOT NULL,
         INDEX idx_last_activity (last_activity)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
-    
-    // Verify table structure
-    $result = $pdo->query("DESCRIBE app_sessions");
-    $columns = $result->fetchAll(PDO::FETCH_ASSOC);
-    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] TABLE STRUCTURE: " . json_encode($columns) . "\n", FILE_APPEND);
+    // If the table already exists but column type is wrong (e.g. TEXT), fix it without deleting rows.
+    $pdo->exec("ALTER TABLE app_sessions MODIFY data LONGBLOB NOT NULL");
 } catch (PDOException $e) {
-    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] TABLE CREATION ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
+    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] TABLE SETUP ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
 }
 
 // Register handler before starting session
