@@ -181,6 +181,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Debug: log any validation errors
+    if (!empty($errors)) {
+        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] VALIDATION ERRORS: " . json_encode($errors) . "\n", FILE_APPEND);
+    }
+
     if (empty($errors)) {
         file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] ERRORS EMPTY - proceeding to signup\n", FILE_APPEND);
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
