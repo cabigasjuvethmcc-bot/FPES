@@ -18,7 +18,7 @@ $stmt = $pdo->prepare("SELECT
                         MIN(overall_rating) as min_rating,
                         MAX(overall_rating) as max_rating
                        FROM evaluations 
-                       WHERE faculty_id = ? AND status = 'submitted'");
+                       WHERE faculty_id = ? AND status = 'submitted' AND COALESCE(is_counted,1) = 1");
 $stmt->execute([$_SESSION['faculty_id']]);
 $stats = $stmt->fetch();
 
@@ -27,7 +27,7 @@ $recent_evals = [];
 try {
     $reStmt = $pdo->prepare("SELECT id, subject, semester, academic_year, overall_rating, submitted_at
                               FROM evaluations
-                              WHERE faculty_id = ? AND status = 'submitted'
+                              WHERE faculty_id = ? AND status = 'submitted' AND COALESCE(is_counted,1) = 1
                               ORDER BY submitted_at DESC
                               LIMIT 20");
     $reStmt->execute([$_SESSION['faculty_id']]);
@@ -41,7 +41,7 @@ $stmt = $pdo->prepare("SELECT ec.category, ec.criterion, AVG(er.rating) as avg_r
                        FROM evaluation_responses er
                        JOIN evaluation_criteria ec ON er.criterion_id = ec.id
                        JOIN evaluations e ON er.evaluation_id = e.id
-                       WHERE e.faculty_id = ? AND e.status = 'submitted'
+                       WHERE e.faculty_id = ? AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
                        GROUP BY ec.id, ec.category, ec.criterion
                        ORDER BY ec.category, ec.criterion");
 $criteria_ratings = $stmt->fetchAll();
@@ -69,7 +69,7 @@ try {
 // Get semester-wise performance
 $stmt = $pdo->prepare("SELECT semester, academic_year, AVG(overall_rating) as avg_rating, COUNT(*) as count
                        FROM evaluations 
-                       WHERE faculty_id = ? AND status = 'submitted'
+                       WHERE faculty_id = ? AND status = 'submitted' AND COALESCE(is_counted,1) = 1
                        GROUP BY semester, academic_year
                        ORDER BY academic_year DESC, semester");
 $stmt->execute([$_SESSION['faculty_id']]);
@@ -80,7 +80,7 @@ $terms = [];
 try {
     $tStmt = $pdo->prepare("SELECT DISTINCT academic_year, semester
                              FROM evaluations
-                             WHERE faculty_id = ? AND status = 'submitted'
+                             WHERE faculty_id = ? AND status = 'submitted' AND COALESCE(is_counted,1) = 1
                              ORDER BY academic_year DESC, semester");
     $tStmt->execute([$_SESSION['faculty_id']]);
     $terms = $tStmt->fetchAll();
