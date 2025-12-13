@@ -42,23 +42,31 @@ try {
     $dept_faculty_list = $stmt->fetchAll();
 
     // Department Rating: average of submitted evaluations' overall_rating for faculty in this department
-    $dept_avg_rating = null; // null => N/A
-    $dept_eval_count = 0;
-    try {
-        $stmt = $pdo->prepare("SELECT AVG(e.overall_rating) AS avg_rating, COUNT(*) AS cnt
-                                FROM evaluations e
-                                JOIN users u ON e.faculty_id = u.id
-                                WHERE u.department = ? AND e.status = 'submitted'");
-        $stmt->execute([$admin_department]);
-        $row = $stmt->fetch();
-        if ($row) {
-            $dept_avg_rating = $row['avg_rating'] !== null ? (float)$row['avg_rating'] : null;
-            $dept_eval_count = (int)($row['cnt'] ?? 0);
-        }
-    } catch (PDOException $e) {
-        // Leave rating as N/A on error
-        $dept_avg_rating = null; $dept_eval_count = 0;
+    $stmt = $pdo->prepare("SELECT
+                        (SELECT COUNT(*) FROM users WHERE role = 'student' AND department = ?) as student_count,
+                        (SELECT COUNT(*) FROM users WHERE role = 'faculty' AND department = ?) as faculty_count,
+                        (SELECT COUNT(*) FROM evaluations e 
+                          JOIN faculty f ON e.faculty_id = f.id
+                          JOIN users u ON f.user_id = u.id
+                          WHERE u.department = ? AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as total_evaluations,
+                        (SELECT AVG(e.overall_rating) FROM evaluations e
+                          JOIN faculty f ON e.faculty_id = f.id
+                          JOIN users u ON f.user_id = u.id
+                          WHERE u.department = ? AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1) as avg_rating");
+    $stmt->execute([$admin_department, $admin_department, $admin_department, $admin_department]);
+    $row = $stmt->fetch();
+    if ($row) {
+        $dept_avg_rating = $row['avg_rating'] !== null ? (float)$row['avg_rating'] : null;
+        $dept_eval_count = (int)($row['total_evaluations'] ?? 0);
+    } else {
+        $dept_avg_rating = null;
+        $dept_eval_count = 0;
     }
+} catch (PDOException $e) {
+    // Leave rating as N/A on error
+    $dept_avg_rating = null;
+    $dept_eval_count = 0;
+}
     
 } catch (PDOException $e) {
     $dept_students = 0;
