@@ -69,8 +69,9 @@ if (!class_exists('DbSessionHandler')) {
                 }
                 $data = $data ? (string)$data : '';
                 
-                // Temporarily disable base64 decode to test truncation
-                $decodedData = $data;
+                // Decode base64 session data
+                $decodedData = base64_decode($data);
+                $decodedData = $decodedData !== false ? $decodedData : '';
                 
                 return $decodedData;
             } catch (PDOException $e) {
@@ -80,8 +81,8 @@ if (!class_exists('DbSessionHandler')) {
 
         public function write($id, $data): bool {
             try {
-                // Temporarily disable base64 to test truncation
-                $encodedData = $data;
+                // Encode session data to prevent truncation issues
+                $encodedData = base64_encode($data);
                 
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
@@ -119,7 +120,7 @@ if (!class_exists('DbSessionHandler')) {
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS app_sessions (
         id VARCHAR(128) NOT NULL PRIMARY KEY,
-        data MEDIUMBLOB NOT NULL,
+        data LONGTEXT NOT NULL,
         last_activity INT NOT NULL,
         INDEX idx_last_activity (last_activity)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
