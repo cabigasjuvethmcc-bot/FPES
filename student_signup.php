@@ -5,6 +5,7 @@ require_once 'catalog.php';
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS pending_registrations (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
         role ENUM('student') NOT NULL DEFAULT 'student',
         full_name VARCHAR(100) NOT NULL,
         student_id VARCHAR(20) NULL,
@@ -19,6 +20,13 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 } catch (PDOException $e) {
+}
+
+// Ensure user_id column exists for older deployments
+try {
+    $pdo->exec("ALTER TABLE pending_registrations ADD COLUMN user_id INT NULL AFTER id");
+} catch (PDOException $e) {
+    // ignore if already exists
 }
 
 $errors = [];
@@ -46,6 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
+    $isQrSignup = !empty($_SESSION['quick_eval_target']);
+
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
         $errors[] = 'Please fill in all required fields.';
     }
@@ -62,14 +72,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         try {
-            $stmt = $pdo->prepare("INSERT INTO pending_registrations
-                (role, full_name, student_id, gender, year_level, program, department, email, phone, password_hash)
-                VALUES ('student', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$full_name, $student_id, $gender, $year_level, $program, $department, $email, $phone, $password_hash]);
-            $submitted = true;
+            if ($isQrSignup) {
+                // QR signup: create a real student account immediately, but keep it pending until admin approval
+                try {
+                    $pdo->exec("ALTER TABLE users ADD COLUMN account_status ENUM('active','pending','blocked') NOT NULL DEFAULT 'active'");
+                } catch (PDOException $e2) {
+                    // ignore if already exists
+                }
+                try {
+                    $pdo->exec("ALTER TABLE students MODIFY student_id VARCHAR(20) NULL");
+                } catch (PDOException $e2) {
+                    // ignore if already nullable
+                }
+
+                $pdo->beginTransaction();
+
+                // Use email as temporary username until admin assigns the real student_id
+                $username = $email;
+                $check = $pdo->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+                $check->execute([$username]);
+                if ($check->fetch()) {
+                    throw new Exception('An account with this email already exists. Please login instead.');
+                }
+
+                $insUser = $pdo->prepare("INSERT INTO users (username, password, role, full_name, email, department, account_status) VALUES (?, ?, 'student', ?, ?, ?, 'pending')");
+                $insUser->execute([$username, $password_hash, $full_name, $email, $department]);
+                $user_id = (int)$pdo->lastInsertId();
+
+                // Ensure gender column exists in students (also used elsewhere)
+                try {
+                    $pdo->exec("ALTER TABLE students ADD COLUMN gender ENUM('Male','Female') NULL AFTER user_id");
+                } catch (PDOException $e2) {
+                    // ignore if already exists
+                }
+
+                $insStudent = $pdo->prepare("INSERT INTO students (user_id, student_id, year_level, program, gender) VALUES (?, NULL, ?, ?, ?)");
+                $insStudent->execute([$user_id, $year_level, $program, $gender]);
+
+                $stmt = $pdo->prepare("INSERT INTO pending_registrations
+                    (user_id, role, full_name, student_id, gender, year_level, program, department, email, phone, password_hash)
+                    VALUES (?, 'student', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$user_id, $full_name, $student_id, $gender, $year_level, $program, $department, $email, $phone, $password_hash]);
+
+                $pdo->commit();
+                $submitted = true;
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO pending_registrations
+                    (role, full_name, student_id, gender, year_level, program, department, email, phone, password_hash)
+                    VALUES ('student', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$full_name, $student_id, $gender, $year_level, $program, $department, $email, $phone, $password_hash]);
+                $submitted = true;
+            }
         } catch (PDOException $e) {
             // Surface the actual reason so issues in production are visible
             $errors[] = 'Unable to submit registration: ' . $e->getMessage();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        } catch (Exception $e) {
+            $errors[] = $e->getMessage();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
         }
     }
 }
