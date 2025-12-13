@@ -182,9 +182,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] ERRORS EMPTY - proceeding to signup\n", FILE_APPEND);
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         try {
             if ($isQrSignup) {
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR SIGNUP BRANCH ENTERED\n", FILE_APPEND);
                 // QR signup: create a real student account immediately, but keep it pending until admin approval
                 try {
                     $pdo->exec("ALTER TABLE users ADD COLUMN account_status ENUM('active','pending','blocked') NOT NULL DEFAULT 'active'");
