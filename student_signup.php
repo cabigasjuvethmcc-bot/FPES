@@ -212,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $check->execute([$username]);
                 $existing = $check->fetch();
                 if ($existing) {
+                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Existing user found with email username, checking password\n", FILE_APPEND);
                     // If the student already has a QR-created pending account, allow them to continue
                     // by logging them in (only if the password matches).
                     $uStmt = $pdo->prepare("SELECT u.id, u.username, u.password, u.role, u.full_name, u.department, s.id AS student_id
@@ -238,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             exit;
                         }
                     }
+                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Password mismatch for existing user, redirecting to login\n", FILE_APPEND);
                     // Password mismatch: send the student to login so they can continue the QR evaluation
                     $_SESSION['login_error'] = 'An account with this email already exists. Please login to continue.';
                     $_SESSION['login_prefill_username'] = $email;
@@ -249,9 +251,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('An account with this email already exists. Please login instead.');
                 }
 
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Creating new user with email as username: $username\n", FILE_APPEND);
                 $insUser = $pdo->prepare("INSERT INTO users (username, password, role, full_name, email, department, account_status) VALUES (?, ?, 'student', ?, ?, ?, 'pending')");
                 $insUser->execute([$username, $password_hash, $full_name, $email, $department]);
                 $user_id = (int)$pdo->lastInsertId();
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] User created with ID: $user_id\n", FILE_APPEND);
 
                 // Ensure gender column exists in students (also used elsewhere)
                 try {
