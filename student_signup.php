@@ -83,9 +83,14 @@ if (!empty($_SESSION['quick_eval_target']) && is_array($_SESSION['quick_eval_tar
     ];
 }
 
-$quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
+// Ensure session carries the QR target if we have one (important for mobile browsers)
+if (empty($_SESSION['quick_eval_target']) && is_array($qrTarget) && !empty($qrTarget)) {
+    $_SESSION['quick_eval_target'] = $qrTarget;
+}
 
-$isQrContext = !empty($_SESSION['quick_eval_target']);
+$quickEvalRedirectUrl = buildQuickEvalRedirectUrl($qrTarget);
+
+$isQrContext = (is_array($qrTarget) && !empty($qrTarget));
 
 $redirectAfterSignup = '';
 
