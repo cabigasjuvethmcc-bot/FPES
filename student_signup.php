@@ -133,6 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isQrSignup = (is_array($qrCandidate) && !empty($qrCandidate));
     $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($qrCandidate);
     $redirectAfterSignup = $isQrSignup ? ($quickEvalRedirectUrl !== '' ? $quickEvalRedirectUrl : 'student/quick_evaluate.php') : '';
+    // Debug: log QR signup detection
+    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR DETECTION: qrCandidate=" . json_encode($qrCandidate) . " isQrSignup=" . ($isQrSignup ? 'YES' : 'NO') . " redirectAfterSignup=" . $redirectAfterSignup . "\n", FILE_APPEND);
 
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
         $errors[] = 'Please fill in all required fields.';
