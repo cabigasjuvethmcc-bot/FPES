@@ -972,7 +972,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Make prior evaluations countable now ONLY if student_id has been assigned
                 if (trim((string)$new_student_id) !== '') {
-                    $updE = $pdo->prepare("UPDATE evaluations SET is_counted = 1 WHERE evaluator_user_id = ? AND evaluator_role = 'student'");
+                    $updE = $pdo->prepare("UPDATE evaluations 
+                                             SET is_counted = 1, status = 'submitted'
+                                           WHERE evaluator_user_id = ?
+                                             AND evaluator_role = 'student'
+                                             AND status = 'pending'");
                     $updE->execute([$existing_user_id]);
                 }
 
