@@ -234,20 +234,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['full_name'] = $u['full_name'];
                         $_SESSION['department'] = $u['department'];
                         $_SESSION['student_id'] = isset($u['student_id']) ? (int)$u['student_id'] : 0;
-                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Session set after auto-login: " . json_encode($_SESSION) . "\n", FILE_APPEND);
-                        
-                        // Debug: verify session data before write
-                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] About to write session - data: " . json_encode($_SESSION) . "\n", FILE_APPEND);
 
                         if (!headers_sent()) {
-                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SENDING REDIRECT TO: $quickEvalRedirectUrl\n", FILE_APPEND);
-                        // Ensure session is written before redirect
-                        session_write_close();
-                        header('Location: ' . $quickEvalRedirectUrl);
-                        exit;
-                    } else {
-                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] HEADERS ALREADY SENT - cannot redirect\n", FILE_APPEND);
-                    }
+                            // Ensure session is written before redirect
+                            session_write_close();
+                            header('Location: ' . $quickEvalRedirectUrl);
+                            exit;
+                        }
                     }
                     file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Password mismatch for existing user, redirecting to login\n", FILE_APPEND);
                     // Password mismatch: send the student to login so they can continue the QR evaluation
