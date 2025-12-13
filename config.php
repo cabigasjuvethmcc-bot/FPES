@@ -61,20 +61,30 @@ if (!class_exists('DbSessionHandler')) {
                 $stmt = $this->pdo->prepare("SELECT data FROM {$this->table} WHERE id = ? LIMIT 1");
                 $stmt->execute([(string)$id]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                return $row ? (string)$row['data'] : '';
+                $data = $row ? (string)$row['data'] : '';
+                
+                // Debug: log what's being read from session
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data=" . substr($data, 0, 200) . "...\n", FILE_APPEND);
+                
+                return $data;
             } catch (PDOException $e) {
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return '';
             }
         }
 
         public function write($id, $data): bool {
             try {
+                // Debug: log what's being written to session
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, data=" . substr($data, 0, 200) . "...\n", FILE_APPEND);
+                
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
                 return $stmt->execute([(string)$id, (string)$data, time()]);
             } catch (PDOException $e) {
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return false;
             }
         }
