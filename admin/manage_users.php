@@ -936,6 +936,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Gender is required on the registration to generate a Student ID');
             }
 
+            // Ensure gender column exists in students (DDL must not run inside the transaction)
+            try {
+                $pdo->exec("ALTER TABLE students ADD COLUMN gender ENUM('Male','Female') NULL AFTER user_id");
+            } catch (PDOException $e2) {
+                // ignore
+            }
+
             $pdo->beginTransaction();
 
             // Generate Student ID based on gender (mirrors add_user logic)
@@ -952,13 +959,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check->execute([$username]);
             if ($check->fetch()) {
                 throw new Exception('Generated Student ID already exists. Please try again.');
-            }
-
-            // Ensure gender column exists in students
-            try {
-                $pdo->exec("ALTER TABLE students ADD COLUMN gender ENUM('Male','Female') NULL AFTER user_id");
-            } catch (PDOException $e2) {
-                // ignore
             }
 
             $existing_user_id = (int)($pending['user_id'] ?? 0);
