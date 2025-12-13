@@ -189,6 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $insStudent = $pdo->prepare("INSERT INTO students (user_id, student_id, year_level, program, gender) VALUES (?, NULL, ?, ?, ?)");
                 $insStudent->execute([$user_id, $year_level, $program, $gender]);
+                $student_table_id = (int)$pdo->lastInsertId();
 
                 $stmt = $pdo->prepare("INSERT INTO pending_registrations
                     (user_id, role, full_name, student_id, gender, year_level, program, department, email, phone, password_hash)
@@ -215,6 +216,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 } catch (PDOException $e2) {
                     // If session setup fails, fall back to showing the success message below
+                }
+
+                // Final safety: ensure student_id is set in session so student dashboard can load
+                if (empty($_SESSION['student_id']) && !empty($_SESSION['user_id']) && $student_table_id > 0) {
+                    $_SESSION['student_id'] = $student_table_id;
                 }
 
                 if (!headers_sent()) {
