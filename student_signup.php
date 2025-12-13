@@ -71,6 +71,18 @@ if ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
     ];
 }
 
+// Normalize QR target for this request so the signup form can always persist it
+$qrTarget = null;
+if (!empty($_SESSION['quick_eval_target']) && is_array($_SESSION['quick_eval_target'])) {
+    $qrTarget = $_SESSION['quick_eval_target'];
+} elseif ($qrFacultyId > 0 && ($qrSubjectCode !== '' || $qrSubjectName !== '')) {
+    $qrTarget = [
+        'faculty_id'   => $qrFacultyId,
+        'subject_code' => $qrSubjectCode,
+        'subject_name' => $qrSubjectName,
+    ];
+}
+
 $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
 
 $isQrContext = !empty($_SESSION['quick_eval_target']);
@@ -105,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $isQrSignup = !empty($_SESSION['quick_eval_target']);
     $quickEvalRedirectUrl = buildQuickEvalRedirectUrl($_SESSION['quick_eval_target'] ?? null);
-    $redirectAfterSignup = $isQrSignup ? $quickEvalRedirectUrl : '';
+    $redirectAfterSignup = $isQrSignup ? ($quickEvalRedirectUrl !== '' ? $quickEvalRedirectUrl : 'student/quick_evaluate.php') : '';
 
     if (!$full_name || !$year_level || !$program || !$department || !$email || !$password || !$confirm_password) {
         $errors[] = 'Please fill in all required fields.';
@@ -256,7 +268,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if (!headers_sent()) {
-                    header('Location: ' . $redirectAfterSignup);
+                    $finalRedirect = ($redirectAfterSignup !== '' ? $redirectAfterSignup : $quickEvalRedirectUrl);
+                    if ($finalRedirect === '') {
+                        $finalRedirect = 'student/quick_evaluate.php';
+                    }
+                    header('Location: ' . $finalRedirect);
                     exit;
                 }
 
@@ -323,11 +339,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
-                <form method="post">
-                    <?php if (!empty($_SESSION['quick_eval_target'])): ?>
-                        <input type="hidden" name="qr_faculty_id" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['faculty_id'] ?? '')); ?>">
-                        <input type="hidden" name="qr_subject_code" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['subject_code'] ?? '')); ?>">
-                        <input type="hidden" name="qr_subject_name" value="<?php echo htmlspecialchars((string)($_SESSION['quick_eval_target']['subject_name'] ?? '')); ?>">
+                <?php
+                    $signupAction = 'student_signup.php';
+                    if (is_array($qrTarget) && !empty($qrTarget)) {
+                        $qs = http_build_query([
+                            'faculty_id'   => (int)($qrTarget['faculty_id'] ?? 0),
+                            'subject_code' => (string)($qrTarget['subject_code'] ?? ''),
+                            'subject_name' => (string)($qrTarget['subject_name'] ?? ''),
+                        ]);
+                        if ($qs !== '') {
+                            $signupAction .= '?' . $qs;
+                        }
+                    }
+                ?>
+                <form method="post" action="<?php echo htmlspecialchars($signupAction); ?>">
+                    <?php if (is_array($qrTarget) && !empty($qrTarget)): ?>
+                        <input type="hidden" name="qr_faculty_id" value="<?php echo htmlspecialchars((string)($qrTarget['faculty_id'] ?? '')); ?>">
+                        <input type="hidden" name="qr_subject_code" value="<?php echo htmlspecialchars((string)($qrTarget['subject_code'] ?? '')); ?>">
+                        <input type="hidden" name="qr_subject_name" value="<?php echo htmlspecialchars((string)($qrTarget['subject_name'] ?? '')); ?>">
                     <?php endif; ?>
                     <div class="form-group">
                         <label for="full_name">Full Name</label>
