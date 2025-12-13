@@ -1,6 +1,10 @@
 <?php
 require_once 'config.php';
 
+$loginError = (string)($_SESSION['login_error'] ?? '');
+$loginPrefillUsername = (string)($_SESSION['login_prefill_username'] ?? '');
+unset($_SESSION['login_error'], $_SESSION['login_prefill_username']);
+
 // If user is already logged in, redirect to dashboard
 if (isLoggedIn()) {
     header('Location: dashboard.php');
@@ -81,6 +85,23 @@ if (isLoggedIn()) {
   </style>
   
   <script src="script.js"></script>
+  <script>
+    (function() {
+      const msg = <?php echo json_encode($loginError, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+      const prefill = <?php echo json_encode($loginPrefillUsername, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+      if (prefill) {
+        const u = document.getElementById('username');
+        if (u) u.value = prefill;
+      }
+      if (msg) {
+        const e = document.getElementById('login-error');
+        if (e) {
+          e.textContent = msg;
+          e.style.display = 'block';
+        }
+      }
+    })();
+  </script>
   
 </body>
 </html>
