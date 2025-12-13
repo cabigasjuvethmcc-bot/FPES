@@ -159,5 +159,5 @@ $_SESSION['quick_eval'] = [
 unset($_SESSION['quick_eval_target']);
 
 // Redirect to student dashboard; it will pre-select this evaluation
-header('Location: student.php');
+header('Location: student.php#evaluate');
 exit;
