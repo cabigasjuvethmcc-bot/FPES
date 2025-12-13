@@ -69,10 +69,14 @@ if (!class_exists('DbSessionHandler')) {
                 }
                 $data = $data ? (string)$data : '';
                 
-                // Debug: log full session data being read
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
+                // Decode base64 session data
+                $decodedData = base64_decode($data);
+                $decodedData = $decodedData !== false ? $decodedData : '';
                 
-                return $data;
+                // Debug: log full session data being read
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, stored_length=" . strlen($data) . ", decoded_length=" . strlen($decodedData) . ", data=" . $decodedData . "\n", FILE_APPEND);
+                
+                return $decodedData;
             } catch (PDOException $e) {
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ ERROR: " . $e->getMessage() . "\n", FILE_APPEND);
                 return '';
@@ -81,14 +85,17 @@ if (!class_exists('DbSessionHandler')) {
 
         public function write($id, $data): bool {
             try {
+                // Encode session data to prevent truncation issues
+                $encodedData = base64_encode($data);
+                
                 // Debug: log full session data being written
-                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
+                file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION WRITE: id=$id, original_length=" . strlen($data) . ", encoded_length=" . strlen($encodedData) . ", data=" . $data . "\n", FILE_APPEND);
                 
                 $stmt = $this->pdo->prepare(
                     "INSERT INTO {$this->table} (id, data, last_activity) VALUES (?, ?, ?)\n" .
                     "ON DUPLICATE KEY UPDATE data = VALUES(data), last_activity = VALUES(last_activity)"
                 );
-                $result = $stmt->execute([(string)$id, $data, time()]);
+                $result = $stmt->execute([(string)$id, $encodedData, time()]);
                 
                 // Debug: verify what was actually written
                 if ($result) {
