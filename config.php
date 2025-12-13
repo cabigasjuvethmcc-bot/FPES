@@ -62,7 +62,12 @@ if (!class_exists('DbSessionHandler')) {
                 $stmt->execute([(string)$id]);
                 $stmt->bindColumn(1, $data, PDO::PARAM_LOB);
                 $stmt->fetch(PDO::FETCH_BOUND);
-                $data = $data ? $data : '';
+                
+                // Convert LOB resource to string if needed
+                if (is_resource($data)) {
+                    $data = stream_get_contents($data);
+                }
+                $data = $data ? (string)$data : '';
                 
                 // Debug: log full session data being read
                 file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] SESSION READ: id=$id, data_length=" . strlen($data) . ", data=" . $data . "\n", FILE_APPEND);
