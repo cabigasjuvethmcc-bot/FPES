@@ -211,12 +211,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $uStmt->execute([(int)$existing['id']]);
                     $u = $uStmt->fetch();
                     if ($u && password_verify($password, (string)$u['password'])) {
+                        // Debug log: auto-login success
+                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR AUTO-LOGIN SUCCESS for user ID {$u['id']}\n", FILE_APPEND);
                         $_SESSION['user_id'] = (int)$u['id'];
                         $_SESSION['username'] = $u['username'];
                         $_SESSION['role'] = $u['role'];
                         $_SESSION['full_name'] = $u['full_name'];
                         $_SESSION['department'] = $u['department'];
                         $_SESSION['student_id'] = isset($u['student_id']) ? (int)$u['student_id'] : 0;
+                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] Session set after auto-login: " . json_encode($_SESSION) . "\n", FILE_APPEND);
 
                         if (!headers_sent()) {
                             session_write_close();
@@ -258,6 +261,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->commit();
                 // Auto-login and continue to the QR evaluation that the student scanned
                 try {
+                    // Debug log: attempting auto-login after creating new user
+                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR NEW USER CREATED ID $user_id - attempting auto-login\n", FILE_APPEND);
                     $sstmt = $pdo->prepare("SELECT u.id, u.username, u.role, u.full_name, u.department, s.id AS student_id
                                             FROM users u
                                             JOIN students s ON s.user_id = u.id
@@ -272,8 +277,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['full_name'] = $u['full_name'];
                         $_SESSION['department'] = $u['department'];
                         $_SESSION['student_id'] = (int)$u['student_id'];
+                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR NEW USER AUTO-LOGIN SUCCESS: " . json_encode($_SESSION) . "\n", FILE_APPEND);
+                    } else {
+                        file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR NEW USER AUTO-LOGIN FAILED: user not found in join\n", FILE_APPEND);
                     }
                 } catch (PDOException $e2) {
+                    file_put_contents(__DIR__ . '/signup_debug.log', "[" . date('Y-m-d H:i:s') . "] QR NEW USER AUTO-LOGIN EXCEPTION: " . $e2->getMessage() . "\n", FILE_APPEND);
                     // If session setup fails, fall back to showing the success message below
                 }
 
