@@ -144,6 +144,10 @@ try {
     $evalStmt->execute([$_SESSION['faculty_id']]);
     $evaluated_data = $evalStmt->fetchAll();
     
+    // Debug: Show what we found
+    error_log("Total students data: " . print_r($total_students_data, true));
+    error_log("Evaluated data: " . print_r($evaluated_data, true));
+    
     // Combine data for display
     foreach ($total_students_data as $total) {
         $subject_key = $total['subject_code'] ? $total['subject_code'] : $total['subject_name'];
@@ -168,6 +172,7 @@ try {
         ];
     }
 } catch (PDOException $e) {
+    error_log("Error in subject completion query: " . $e->getMessage());
     $subject_completion = [];
 }
 
@@ -709,6 +714,57 @@ try {
                     <small class="muted-note">Status reflects submissions for the active evaluation period<?php echo $activePeriod ? '' : ' (no active period detected)'; ?>.</small>
                 </div>
                 <?php endif; ?>
+
+                <!-- Evaluation Completion Status per Subject -->
+                <div class="chart-container">
+                    <h3>Student Evaluation Completion Status</h3>
+                    <table class="evaluations-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Total Students</th>
+                                <th>Evaluated Students</th>
+                                <th>Pending Students</th>
+                                <th>Completion Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($subject_completion)): ?>
+                                <?php foreach ($subject_completion as $sc): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars(($sc['subject_code'] ? $sc['subject_code'].' - ' : '').$sc['subject_name']); ?></td>
+                                        <td><?php echo (int)$sc['total_students']; ?></td>
+                                        <td>
+                                            <span class="rating-badge" style="background: var(--secondary-color); color:white;">
+                                                <?php echo (int)$sc['evaluated_students']; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="rating-badge" style="background: var(--warning-color); color:white;">
+                                                <?php echo (int)$sc['pending_students']; ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                                $completion_rate = $sc['total_students'] > 0 ? 
+                                                    ($sc['evaluated_students'] / $sc['total_students']) * 100 : 0;
+                                                echo number_format($completion_rate, 1) . '%';
+                                            ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 2rem;">
+                                        <p>No student evaluation data available.</p>
+                                        <p>This could mean no students are assigned to your subjects yet.</p>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                    <small class="muted-note">Data shows evaluation completion for all your assigned subjects. Evaluated students are counted once per subject.</small>
+                </div>
 
                 <!-- Summary Stats -->
                 <div class="stats-grid">
