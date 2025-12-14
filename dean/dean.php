@@ -14,6 +14,7 @@ list($evalOpen, $evalState, $evalReason, $evalSchedule) = isEvaluationOpenForStu
 $activePeriod = $evalOpen ? getActiveSemesterYear($pdo) : null;
 
 // Get overall statistics (scoped to dean's department)
+$department = trim($department);
 $stmt = $pdo->prepare("SELECT 
                         COUNT(DISTINCT e.id) as total_evaluations,
                         COUNT(DISTINCT e.faculty_id) as evaluated_faculty,
@@ -22,7 +23,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
                        LEFT JOIN evaluations e ON e.faculty_id = f.id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
-                       WHERE u.department = ?");
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''");
 $stmt->execute([$department]);
 $overall_stats = $stmt->fetch();
 
@@ -36,7 +37,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
                        LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
-                       WHERE u.department = ?
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY f.id, u.full_name, u.department, f.position
                        ORDER BY avg_rating DESC");
 $stmt->execute([$department]);
@@ -51,7 +52,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
                        LEFT JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
-                       WHERE u.department = ?
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY u.department
                        ORDER BY avg_rating DESC");
 $stmt->execute([$department]);
@@ -65,7 +66,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM evaluations e
                        JOIN faculty f ON e.faculty_id = f.id
                        JOIN users u ON f.user_id = u.id
-                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ?
+                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY e.academic_year, e.semester
                        ORDER BY e.academic_year DESC, e.semester");
 $stmt->execute([$department]);
@@ -79,7 +80,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
                        JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
-                       WHERE u.department = ?
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY f.id, u.full_name, u.department, f.position
                        HAVING COUNT(e.id) >= 3
                        ORDER BY avg_rating DESC
@@ -94,7 +95,7 @@ $stmt = $pdo->prepare("SELECT
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
                        JOIN evaluations e ON f.id = e.faculty_id AND e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1
-                       WHERE u.department = ?
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY f.id, u.full_name, u.department, f.position
                        HAVING COUNT(e.id) >= 3
                        ORDER BY avg_rating ASC
@@ -117,7 +118,7 @@ $stmt = $pdo->prepare("SELECT
                        JOIN evaluations e ON er.evaluation_id = e.id
                        JOIN faculty f ON e.faculty_id = f.id
                        JOIN users u ON f.user_id = u.id
-                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ?
+                       WHERE e.status = 'submitted' AND COALESCE(e.is_counted,1) = 1 AND u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        GROUP BY ec.id, ec.category, ec.criterion
                        ORDER BY ec.category, avg_rating DESC");
 $stmt->execute([$department]);
@@ -133,7 +134,7 @@ foreach ($criteria_performance as $criterion) {
 $stmt = $pdo->prepare("SELECT f.id AS faculty_id, u.full_name
                        FROM faculty f
                        JOIN users u ON f.user_id = u.id
-                       WHERE u.department = ?
+                       WHERE u.department = ? AND u.department IS NOT NULL AND u.department <> ''
                        ORDER BY u.full_name");
 $stmt->execute([$department]);
 $dept_faculty = $stmt->fetchAll();
@@ -141,7 +142,7 @@ $dept_faculty = $stmt->fetchAll();
 // Attempt to load subjects for this department (optional; fallback to manual entry)
 $dept_subjects = [];
 try {
-    $stmt = $pdo->prepare("SELECT code, name FROM subjects WHERE department = ? ORDER BY name");
+    $stmt = $pdo->prepare("SELECT code, name FROM subjects WHERE department = ? AND department IS NOT NULL AND department <> '' ORDER BY name");
     $stmt->execute([$department]);
     $dept_subjects = $stmt->fetchAll();
 } catch (PDOException $e) {
