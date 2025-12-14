@@ -624,6 +624,7 @@ try {
                                 <th>Academic Year</th>
                                 <th>Overall Rating</th>
                                 <th>Submitted</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -634,6 +635,7 @@ try {
                                     <td><?php echo htmlspecialchars($se['academic_year']); ?></td>
                                     <td><?php echo $se['overall_rating'] ? number_format($se['overall_rating'],2) : 'N/A'; ?></td>
                                     <td><?php echo $se['submitted_at'] ? date('M j, Y', strtotime($se['submitted_at'])) : 'N/A'; ?></td>
+                                    <td><a href="self_evaluation_details.php?id=<?php echo (int)$se['id']; ?>" class="btn-primary" style="padding: 6px 16px; text-decoration: none; border-radius: 6px; font-size: 0.9rem; background: var(--primary-color); color: white; border: none; cursor: pointer; display: inline-block; text-align: center; min-width: 60px;" onmouseover="this.style.background='var(--secondary-color)'" onmouseout="this.style.background='var(--primary-color)'">View</a></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
