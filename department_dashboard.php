@@ -63,17 +63,13 @@ try {
         $dept_eval_count = 0;
     }
 } catch (PDOException $e) {
-    // Leave rating as N/A on error
-    $dept_avg_rating = null;
-    $dept_eval_count = 0;
-}
-    
-} catch (PDOException $e) {
     $dept_students = 0;
     $dept_faculty = 0;
     $recent_enrollments = 0;
     $recent_students = [];
     $dept_faculty_list = [];
+    $dept_avg_rating = null;
+    $dept_eval_count = 0;
 }
 
 // Get department color scheme
