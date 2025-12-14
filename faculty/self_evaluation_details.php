@@ -74,14 +74,13 @@ foreach ($responses as $r) {
         .comment{color:#475569;font-size:.9rem;margin-top:4px}
         .back{display:inline-block;margin-bottom:10px}
         .btn{background:var(--primary-color);color:#fff;border:none;border-radius:8px;padding:8px 12px;text-decoration:none}
-        .evaluator-badge{background:var(--secondary-color);color:#fff;padding:4px 8px;border-radius:12px;font-size:0.85rem;font-weight:600}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="back"><a class="btn" href="faculty.php" onclick="history.back(); return false;">← Back</a></div>
         <div class="header">
-            <h2>Self-Evaluation Details</h2>
+            <h2>Evaluation Details</h2>
             <span class="rating-badge" style="background: var(--secondary-color); color:#fff;">Overall: <?php echo $evaluation['overall_rating'] ? number_format($evaluation['overall_rating'],2) : 'N/A'; ?></span>
         </div>
 
@@ -89,9 +88,9 @@ foreach ($responses as $r) {
             <div class="meta-item"><strong>Subject:</strong><br><?php echo htmlspecialchars(($evaluation['subject_code'] ? $evaluation['subject_code'].' - ' : '').$evaluation['subject_name']); ?></div>
             <div class="meta-item"><strong>Semester:</strong><br><?php echo htmlspecialchars($evaluation['semester']); ?></div>
             <div class="meta-item"><strong>Academic Year:</strong><br><?php echo htmlspecialchars($evaluation['academic_year']); ?></div>
-            <div class="meta-item"><strong>Submitted:</strong><br><?php echo $evaluation['submitted_at'] ? date('M j, Y g:i A', strtotime($evaluation['submitted_at'])) : 'N/A'; ?></div>
-            <div class="meta-item"><strong>Evaluator:</strong><br><span class="evaluator-badge">Self</span></div>
-            <div class="meta-item"><strong>Evaluation Type:</strong><br>Self-Evaluation</div>
+            <div class="meta-item"><strong>Submitted:</strong><br><?php echo $evaluation['submitted_at'] ? date('M j, Y', strtotime($evaluation['submitted_at'])) : 'N/A'; ?></div>
+            <div class="meta-item"><strong>Evaluator:</strong><br>Self Evaluation (faculty)</div>
+            <div class="meta-item"><strong>Status:</strong><br>Submitted</div>
         </div>
 
         <?php if (!empty($evaluation['overall_comments'])): ?>
@@ -106,7 +105,7 @@ foreach ($responses as $r) {
         <div class="criteria">
             <h2>Criteria Responses</h2>
             <?php if (empty($grouped)): ?>
-                <p>No detailed responses recorded for this self-evaluation.</p>
+                <p>No detailed responses recorded for this evaluation.</p>
             <?php else: ?>
                 <?php foreach ($grouped as $category => $items): ?>
                     <div class="category">
