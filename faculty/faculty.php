@@ -1010,18 +1010,50 @@ try {
             const err = form.querySelector('.error-message');
             if (ok) { ok.style.display='none'; ok.textContent=''; }
             if (err) { err.style.display='none'; err.textContent=''; }
+            
+            // Validate that all criteria are rated
+            const ratingInputs = form.querySelectorAll('input[type="radio"][name^="rating_"]:checked');
+            const totalRatingGroups = form.querySelectorAll('input[type="radio"][name^="rating_"]').length / 5; // Each criterion has 5 radio buttons
+            
+            if (ratingInputs.length < totalRatingGroups) {
+                if (err) { 
+                    err.textContent = 'Please rate all criteria before submitting. Each criterion requires a rating from 1 to 5.'; 
+                    err.style.display='block'; 
+                }
+                return;
+            }
+            
             const fd = new FormData(form);
+            console.log('Submitting self-evaluation with data:', Object.fromEntries(fd));
+            
             fetch('submit_self_evaluation.php', { method:'POST', body: fd })
-              .then(r=>r.json())
+              .then(r=>{
+                  console.log('Response received:', r);
+                  return r.json();
+              })
               .then(data=>{
+                  console.log('Response data:', data);
                  if (data.success) {
                     if (ok) { ok.textContent = data.message || 'Self-evaluation submitted.'; ok.style.display='block'; }
+                    // Reset form after successful submission
+                    form.querySelectorAll('input[type="radio"]').forEach(r=>{ r.checked = false; });
+                    const oc = form.querySelector('textarea[name="overall_comments"]'); 
+                    if (oc) oc.value = '';
+                    // Hide the form container after successful submission
+                    setTimeout(() => {
+                        const container = document.getElementById('self-eval-form-container');
+                        if (container) container.style.display = 'none';
+                        // Reset subject selection
+                        const sel = document.getElementById('self_subject_select');
+                        if (sel) sel.value = '';
+                    }, 2000);
                  } else {
                     if (err) { err.textContent = data.message || 'Failed to submit self-evaluation.'; err.style.display='block'; }
                  }
               })
               .catch(e=>{
-                 if (err) { err.textContent = 'Network error while submitting.'; err.style.display='block'; }
+                  console.error('Submission error:', e);
+                 if (err) { err.textContent = 'Network error while submitting. Please check your connection and try again.'; err.style.display='block'; }
               });
         }
 
