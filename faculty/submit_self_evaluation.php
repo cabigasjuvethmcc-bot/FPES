@@ -58,29 +58,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('All required fields must be filled');
         }
 
-        // Ensure self-evaluation tables exist
+        // Ensure evaluation_criteria table exists first
+        $pdo->exec("CREATE TABLE IF NOT EXISTS evaluation_criteria (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            category VARCHAR(100) NOT NULL,
+            criterion VARCHAR(255) NOT NULL,
+            description TEXT,
+            weight DECIMAL(3,2) DEFAULT 1.00,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Insert default criteria if table is empty
+        $countStmt = $pdo->query("SELECT COUNT(*) as count FROM evaluation_criteria");
+        $count = $countStmt->fetch()['count'];
+        if ($count == 0) {
+            // Insert default evaluation criteria
+            $pdo->exec("INSERT INTO evaluation_criteria (category, criterion, description, weight, is_active) VALUES
+            ('A. COMMITMENT', 'Demonstrates sensitivity to student''s ability to attend and absorb content information', NULL, 1.00, 1),
+            ('A. COMMITMENT', 'Integrates sensitively her/his learning objectives with those of the students in a collaborative process', NULL, 1.00, 1),
+            ('A. COMMITMENT', 'Makes her/himself available to students beyond official time.', NULL, 1.00, 1),
+            ('A. COMMITMENT', 'Regularly comes to class on time, well-groomed and well-prepared to complete assigned responsibilities', NULL, 1.00, 1),
+            ('A. COMMITMENT', 'Keeps accurate records of student''s performance and prompt submission of the same.', NULL, 1.00, 1),
+            ('B. KNOWLEDGE OF THE SUBJECT', 'Demonstrates mastery of the subject matter (Explain the subject matter without relying solely on the prescribed textbook)', NULL, 1.00, 1),
+            ('B. KNOWLEDGE OF THE SUBJECT', 'Draws and share information on the state on the art of theory and practice in her/his discipline', NULL, 1.00, 1),
+            ('B. KNOWLEDGE OF THE SUBJECT', 'Integrates subjects to practical circumstances and learning intents/purposes of students.', NULL, 1.00, 1),
+            ('B. KNOWLEDGE OF THE SUBJECT', 'Explains the relevance of present topics to the previous lessons, and relates the subject matter to relevant current issues and/or daily life activities.', NULL, 1.00, 1),
+            ('B. KNOWLEDGE OF THE SUBJECT', 'Demonstrates up to date knowledge and/or awareness on current trends and issues of the subject.', NULL, 1.00, 1),
+            ('C. TEACHING FOR INDEPENDENT LEARNING', 'Creates teaching strategies that allow students to practice using concepts they need to understand (interactive discussion)', NULL, 1.00, 1),
+            ('C. TEACHING FOR INDEPENDENT LEARNING', 'Enhances students self-esteem and/or gives due recognition to student''s performance/potentials.', NULL, 1.00, 1),
+            ('C. TEACHING FOR INDEPENDENT LEARNING', 'Allows students to create their own course with objectives and realistically defined student-professor rules and make them accountable for their performance', NULL, 1.00, 1),
+            ('C. TEACHING FOR INDEPENDENT LEARNING', 'Allows students to think independently and make their own decisions and holds them accountable for their performance based largely on their success in executing decisions.', NULL, 1.00, 1),
+            ('C. TEACHING FOR INDEPENDENT LEARNING', 'Encourages students to learn beyond what is required and helps/guides the students how to apply the concepts learned.', NULL, 1.00, 1),
+            ('D. MANAGEMENT OF LEARNING', 'Creates opportunities for intensive and/or extensive contribution of students in the class activities (e.g. breaks class into dyads, triads or buzz/task groups).', NULL, 1.00, 1),
+            ('D. MANAGEMENT OF LEARNING', 'Drawing students to contribute to knowledge and understanding of the concepts at hand.', NULL, 1.00, 1),
+            ('D. MANAGEMENT OF LEARNING', 'Designs and implements learning conditions and experiences that promote healthy exchange and/or confrontations.', NULL, 1.00, 1),
+            ('D. MANAGEMENT OF LEARNING', 'Structures/re-structures learning and teaching-learning context to enhance attainment of collective learning objectives.', NULL, 1.00, 1),
+            ('D. MANAGEMENT OF LEARNING', 'Use of instructional materials (audio/video materials: fieldtrips, film showing, computer-aided instruction, etc.) to reinforce learning processes.', NULL, 1.00, 1)");
+        }
+
+        // Now create self-evaluation tables
         $pdo->exec("CREATE TABLE IF NOT EXISTS self_evaluation (
             id INT AUTO_INCREMENT PRIMARY KEY,
             faculty_id INT NOT NULL,
-            subject_code VARCHAR(50) NOT NULL,
+            subject_code VARCHAR(50),
             subject_name VARCHAR(255) NOT NULL,
             semester VARCHAR(20) NOT NULL,
             academic_year VARCHAR(10) NOT NULL,
             overall_rating DECIMAL(3,2) NULL,
             overall_comments TEXT NULL,
             submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uniq_self_eval (faculty_id, subject_code, subject_name, semester, academic_year),
             FOREIGN KEY (faculty_id) REFERENCES faculty(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        
+        // Create self_evaluation_responses without foreign key first, then add it
         $pdo->exec("CREATE TABLE IF NOT EXISTS self_evaluation_responses (
             id INT AUTO_INCREMENT PRIMARY KEY,
             self_eval_id INT NOT NULL,
             criterion_id INT NOT NULL,
             rating INT NOT NULL,
-            comment TEXT NULL,
-            FOREIGN KEY (self_eval_id) REFERENCES self_evaluation(id) ON DELETE CASCADE,
-            FOREIGN KEY (criterion_id) REFERENCES evaluation_criteria(id) ON DELETE CASCADE
+            comment TEXT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        
+        // Try to add foreign key constraints
+        try {
+            $pdo->exec("ALTER TABLE self_evaluation_responses ADD CONSTRAINT fk_self_eval 
+                        FOREIGN KEY (self_eval_id) REFERENCES self_evaluation(id) ON DELETE CASCADE");
+        } catch (Exception $e) {
+            // Foreign key might already exist, ignore error
+        }
+        
+        try {
+            $pdo->exec("ALTER TABLE self_evaluation_responses ADD CONSTRAINT fk_criteria 
+                        FOREIGN KEY (criterion_id) REFERENCES evaluation_criteria(id) ON DELETE CASCADE");
+        } catch (Exception $e) {
+            // Foreign key might already exist, ignore error
+        }
 
         // Verify subject assignment for this faculty (using faculty.user_id -> faculty_subjects.faculty_user_id)
         $assigned = false;
