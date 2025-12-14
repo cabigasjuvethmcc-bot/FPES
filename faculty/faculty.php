@@ -122,6 +122,55 @@ try {
     $assigned_students = [];
 }
 
+// Get evaluation completion status per subject
+$subject_completion = [];
+try {
+    // Get total students per subject for this faculty
+    $totalStmt = $pdo->prepare("SELECT sfs.subject_code, sfs.subject_name, COUNT(DISTINCT sfs.student_user_id) as total_students
+                                FROM faculty f
+                                JOIN student_faculty_subjects sfs ON sfs.faculty_user_id = f.user_id
+                                WHERE f.id = ?
+                                GROUP BY sfs.subject_code, sfs.subject_name
+                                ORDER BY sfs.subject_name");
+    $totalStmt->execute([$_SESSION['faculty_id']]);
+    $total_students_data = $totalStmt->fetchAll();
+    
+    // Get submitted evaluations per subject for this faculty (prevent duplicates by using DISTINCT)
+    $evalStmt = $pdo->prepare("SELECT e.subject, COUNT(DISTINCT e.student_id) as evaluated_students
+                               FROM evaluations e
+                               WHERE e.faculty_id = ? AND e.status = 'submitted' AND e.student_id IS NOT NULL
+                               GROUP BY e.subject
+                               ORDER BY e.subject");
+    $evalStmt->execute([$_SESSION['faculty_id']]);
+    $evaluated_data = $evalStmt->fetchAll();
+    
+    // Combine data for display
+    foreach ($total_students_data as $total) {
+        $subject_key = $total['subject_code'] ? $total['subject_code'] : $total['subject_name'];
+        $evaluated_count = 0;
+        
+        // Find matching evaluated count
+        foreach ($evaluated_data as $eval) {
+            // Match by subject name or code
+            if ($eval['subject'] === $total['subject_name'] || 
+                ($total['subject_code'] && $eval['subject'] === $total['subject_code'])) {
+                $evaluated_count = $eval['evaluated_students'];
+                break;
+            }
+        }
+        
+        $subject_completion[] = [
+            'subject_code' => $total['subject_code'],
+            'subject_name' => $total['subject_name'],
+            'total_students' => $total['total_students'],
+            'evaluated_students' => $evaluated_count,
+            'pending_students' => $total['total_students'] - $evaluated_count
+        ];
+    }
+} catch (PDOException $e) {
+    $subject_completion = [];
+}
+
 // Evaluation schedule state and active period (mirror student/dean flow)
 list($evalOpen, $evalState, $evalReason, $evalSchedule) = isEvaluationOpenForStudents($pdo);
 $activePeriod = $evalOpen ? getActiveSemesterYear($pdo) : null;
